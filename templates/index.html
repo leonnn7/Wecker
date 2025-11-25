@@ -4,383 +4,301 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Raspberry Pi Wecker</title>
+    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --bg-dark: #0a0a12;
+            --bg-card: rgba(30, 30, 40, 0.4);
+            --bg-card-hover: rgba(40, 40, 60, 0.6);
+            --accent-primary: #6366f1;
+            --accent-secondary: #a855f7;
+            --accent-gradient: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --glass-border: 1px solid rgba(255, 255, 255, 0.05);
+            --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+            --blur: blur(12px);
+        }
+
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            font-family: 'Outfit', sans-serif;
         }
-        
-        :root {
-            --primary: #667eea;
-            --primary-dark: #5568d3;
-            --secondary: #764ba2;
-            --success: #10b981;
-            --warning: #f59e0b;
-            --danger: #ef4444;
-            --bg-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            --card-shadow: 0 20px 60px rgba(0,0,0,0.15);
-            --card-shadow-hover: 0 25px 70px rgba(0,0,0,0.2);
-        }
-        
+
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: var(--bg-gradient);
+            background-color: var(--bg-dark);
+            color: var(--text-main);
             min-height: 100vh;
-            padding: 20px;
-            color: #333;
+            overflow-x: hidden;
+            position: relative;
         }
-        
+
+        /* Liquid Background Animation */
+        body::before, body::after {
+            content: '';
+            position: absolute;
+            width: 600px;
+            height: 600px;
+            border-radius: 50%;
+            background: var(--accent-secondary);
+            filter: blur(100px);
+            opacity: 0.15;
+            z-index: -1;
+            animation: liquid 15s infinite alternate ease-in-out;
+        }
+
+        body::before {
+            top: -100px;
+            left: -100px;
+            background: var(--accent-primary);
+        }
+
+        body::after {
+            bottom: -100px;
+            right: -100px;
+            animation-delay: -7s;
+        }
+
+        @keyframes liquid {
+            0% { transform: translate(0, 0) scale(1); }
+            50% { transform: translate(50px, 50px) scale(1.1); }
+            100% { transform: translate(-30px, 20px) scale(0.9); }
+        }
+
+        /* Navbar */
         .navbar {
-            background: rgba(255,255,255,0.95);
-            backdrop-filter: blur(10px);
-            border-radius: 15px;
-            padding: 15px 25px;
-            margin-bottom: 25px;
+            background: rgba(10, 10, 18, 0.8);
+            backdrop-filter: var(--blur);
+            -webkit-backdrop-filter: var(--blur);
+            padding: 1.2rem 2rem;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            box-shadow: var(--card-shadow);
+            border-bottom: var(--glass-border);
+            position: sticky;
+            top: 0;
+            z-index: 100;
         }
-        
-        .navbar-left {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-        
+
         .navbar-title {
-            font-size: 1.5em;
-            font-weight: 700;
-            background: var(--bg-gradient);
+            font-size: 1.5rem;
+            font-weight: 600;
+            background: var(--accent-gradient);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            background-clip: text;
+            letter-spacing: -0.5px;
         }
-        
-        .user-info {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            color: #666;
-        }
-        
-        .role-badge {
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 0.85em;
-            font-weight: 600;
-        }
-        
-        .role-admin {
-            background: #fee2e2;
-            color: #991b1b;
-        }
-        
-        .role-user {
-            background: #dbeafe;
-            color: #1e40af;
-        }
-        
-        .role-guest {
-            background: #f3f4f6;
-            color: #4b5563;
-        }
-        
-        .btn {
-            padding: 8px 16px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 0.9em;
-            font-weight: 500;
-            transition: all 0.3s;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-        }
-        
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        }
-        
-        .btn-primary {
-            background: var(--primary);
-            color: white;
-        }
-        
-        .btn-danger {
-            background: var(--danger);
-            color: white;
-        }
-        
-        .btn-warning {
-            background: var(--warning);
-            color: white;
-        }
-        
-        .btn-success {
-            background: var(--success);
-            color: white;
-        }
-        
-        .btn-secondary {
-            background: #6b7280;
-            color: white;
-        }
-        
+
+        /* Layout */
         .container {
             max-width: 1200px;
-            margin: 0 auto;
-        }
-        
-        .grid {
+            margin: 2rem auto;
+            padding: 0 1.5rem;
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-            gap: 25px;
-            margin-bottom: 25px;
+            gap: 2rem;
         }
-        
+
+        /* Cards (Glassmorphism) */
         .card {
-            background: white;
-            border-radius: 20px;
-            padding: 25px;
-            box-shadow: var(--card-shadow);
-            transition: transform 0.3s, box-shadow 0.3s;
+            background: var(--bg-card);
+            backdrop-filter: var(--blur);
+            -webkit-backdrop-filter: var(--blur);
+            border: var(--glass-border);
+            border-radius: 24px;
+            padding: 2rem;
+            box-shadow: var(--glass-shadow);
+            transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
         }
-        
+
         .card:hover {
             transform: translateY(-5px);
-            box-shadow: var(--card-shadow-hover);
+            background: var(--bg-card-hover);
+            box-shadow: 0 15px 40px 0 rgba(0, 0, 0, 0.4);
         }
         
+        /* Liquid Card Effect */
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(45deg, transparent, rgba(255,255,255,0.03), transparent);
+            transform: translateX(-100%);
+            transition: 0.5s;
+        }
+        
+        .card:hover::before {
+            transform: translateX(100%);
+        }
+
         .card-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
-            padding-bottom: 15px;
-            border-bottom: 2px solid #f3f4f6;
+            margin-bottom: 1.5rem;
         }
-        
+
         .card-title {
-            font-size: 1.3em;
-            font-weight: 700;
-            color: #1f2937;
+            font-size: 1.1rem;
+            color: var(--text-muted);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
-        
+
+        /* Time Display */
         .time-display {
-            font-size: 4em;
-            font-weight: 700;
+            font-size: 4.5rem;
+            font-weight: 600;
             text-align: center;
-            background: var(--bg-gradient);
+            line-height: 1;
+            margin: 1rem 0;
+            font-variant-numeric: tabular-nums;
+            background: linear-gradient(180deg, #fff 0%, #cbd5e1 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            background-clip: text;
-            margin: 20px 0;
-            font-variant-numeric: tabular-nums;
+            text-shadow: 0 10px 20px rgba(0,0,0,0.2);
         }
-        
+
         .date-display {
             text-align: center;
-            color: #6b7280;
-            font-size: 1.1em;
-            margin-bottom: 20px;
+            color: var(--accent-primary);
+            font-size: 1.2rem;
+            font-weight: 400;
+            letter-spacing: 1px;
         }
-        
-        .alarm-item {
-            background: #f9fafb;
+
+        /* Buttons */
+        .btn {
+            padding: 0.8rem 1.5rem;
             border-radius: 12px;
-            padding: 18px;
-            margin-bottom: 12px;
-            border-left: 4px solid var(--primary);
-            transition: all 0.3s;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.95rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-primary {
+            background: var(--accent-gradient);
+            color: white;
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+        }
+
+        .btn-primary:hover {
+            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5);
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-main);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        /* Alarm List */
+        .alarm-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            max-height: 400px;
+            overflow-y: auto;
+            padding-right: 5px;
         }
         
-        .alarm-item:hover {
-            background: #f3f4f6;
-            transform: translateX(5px);
+        .alarm-list::-webkit-scrollbar {
+            width: 6px;
         }
         
-        .alarm-item.active {
-            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-            border-left-color: var(--warning);
-            animation: pulse 2s infinite;
-            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+        .alarm-list::-webkit-scrollbar-track {
+            background: transparent;
         }
         
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.9; }
+        .alarm-list::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.1);
+            border-radius: 3px;
         }
-        
-        @keyframes slideIn {
-            from {
-                transform: translateX(400px);
-                opacity: 0;
-            }
-            to {
-                transform: translateX(0);
-                opacity: 1;
-            }
-        }
-        
-        @keyframes slideOut {
-            from {
-                transform: translateX(0);
-                opacity: 1;
-            }
-            to {
-                transform: translateX(400px);
-                opacity: 0;
-            }
-        }
-        
-        .notification {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 15px 20px;
-            border-radius: 10px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-            z-index: 10000;
-            animation: slideIn 0.3s ease-out;
-        }
-        
-        .alarm-header {
+
+        .alarm-item {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 1.2rem;
+            border-radius: 16px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.03);
+            transition: all 0.3s ease;
         }
-        
+
+        .alarm-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.1);
+            transform: scale(1.02);
+        }
+
         .alarm-time {
-            font-size: 1.8em;
-            font-weight: 700;
-            color: #1f2937;
-            font-variant-numeric: tabular-nums;
+            font-size: 1.8rem;
+            font-weight: 600;
+            color: var(--text-main);
         }
-        
+
         .alarm-label {
-            color: #4b5563;
-            font-weight: 500;
+            color: var(--text-muted);
+            font-size: 0.9rem;
             margin-top: 4px;
         }
-        
-        .alarm-meta {
+
+        .alarm-days {
             display: flex;
-            gap: 12px;
+            gap: 4px;
             margin-top: 8px;
-            flex-wrap: wrap;
+        }
+
+        .day-badge {
+            font-size: 0.7rem;
+            padding: 2px 6px;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-muted);
         }
         
-        .meta-badge {
-            padding: 4px 10px;
-            border-radius: 12px;
-            font-size: 0.8em;
-            font-weight: 500;
+        .day-badge.active {
+            background: rgba(99, 102, 241, 0.2);
+            color: var(--accent-primary);
+            border: 1px solid rgba(99, 102, 241, 0.2);
         }
-        
-        .badge-days {
-            background: #e0e7ff;
-            color: #3730a3;
-        }
-        
-        .badge-sound {
-            background: #fce7f3;
-            color: #9f1239;
-        }
-        
-        .badge-snooze {
-            background: #d1fae5;
-            color: #065f46;
-        }
-        
-        .badge-no-snooze {
-            background: #fee2e2;
-            color: #991b1b;
-        }
-        
-        .alarm-actions {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-        }
-        
-        .form-group {
-            margin-bottom: 18px;
-        }
-        
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 600;
-            color: #374151;
-        }
-        
-        .form-group input,
-        .form-group select {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #e5e7eb;
-            border-radius: 10px;
-            font-size: 1em;
-            transition: border-color 0.3s;
-        }
-        
-        .form-group input:focus,
-        .form-group select:focus {
-            outline: none;
-            border-color: var(--primary);
-        }
-        
-        .days-selector {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-        }
-        
-        .day-checkbox {
-            flex: 1;
-            min-width: 60px;
-        }
-        
-        .day-checkbox input[type="checkbox"] {
-            display: none;
-        }
-        
-        .day-checkbox label {
-            display: block;
-            padding: 10px;
-            text-align: center;
-            border: 2px solid #e5e7eb;
-            border-radius: 10px;
-            cursor: pointer;
-            transition: all 0.3s;
-            font-weight: 500;
-        }
-        
-        .day-checkbox input[type="checkbox"]:checked + label {
-            background: var(--primary);
-            color: white;
-            border-color: var(--primary);
-        }
-        
+
+        /* Toggles */
         .switch {
             position: relative;
             display: inline-block;
-            width: 52px;
+            width: 50px;
             height: 28px;
         }
-        
+
         .switch input {
             opacity: 0;
             width: 0;
             height: 0;
         }
-        
+
         .slider {
             position: absolute;
             cursor: pointer;
@@ -388,11 +306,11 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background-color: #cbd5e1;
+            background-color: rgba(255, 255, 255, 0.1);
             transition: .4s;
-            border-radius: 28px;
+            border-radius: 34px;
         }
-        
+
         .slider:before {
             position: absolute;
             content: "";
@@ -405,32 +323,16 @@
             border-radius: 50%;
             box-shadow: 0 2px 4px rgba(0,0,0,0.2);
         }
-        
+
         input:checked + .slider {
-            background-color: var(--primary);
+            background: var(--accent-gradient);
         }
-        
+
         input:checked + .slider:before {
-            transform: translateX(24px);
+            transform: translateX(22px);
         }
-        
-        .toggle-group {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-        
-        .empty-state {
-            text-align: center;
-            padding: 60px 20px;
-            color: #9ca3af;
-        }
-        
-        .empty-state-icon {
-            font-size: 4em;
-            margin-bottom: 15px;
-        }
-        
+
+        /* Modals */
         .modal {
             display: none;
             position: fixed;
@@ -438,149 +340,209 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0,0,0,0.5);
-            backdrop-filter: blur(5px);
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(8px);
             z-index: 1000;
-            align-items: center;
             justify-content: center;
+            align-items: center;
+            opacity: 0;
+            transition: opacity 0.3s ease;
         }
-        
+
         .modal.active {
             display: flex;
+            opacity: 1;
         }
-        
+
         .modal-content {
-            background: white;
-            border-radius: 20px;
-            padding: 30px;
-            max-width: 500px;
+            background: #13131f;
+            border: var(--glass-border);
+            border-radius: 24px;
+            padding: 2rem;
             width: 90%;
-            max-height: 90vh;
-            overflow-y: auto;
-            box-shadow: 0 25px 50px rgba(0,0,0,0.3);
-            animation: modalSlide 0.3s ease-out;
+            max-width: 500px;
+            box-shadow: var(--glass-shadow);
+            transform: scale(0.95);
+            transition: transform 0.3s ease;
+            position: relative;
+            overflow: hidden;
         }
         
-        @keyframes modalSlide {
-            from {
-                opacity: 0;
-                transform: translateY(-30px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+        .modal.active .modal-content {
+            transform: scale(1);
         }
-        
+
         .modal-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
-            padding-bottom: 15px;
-            border-bottom: 2px solid #f3f4f6;
+            margin-bottom: 2rem;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            padding-bottom: 1rem;
         }
-        
-        .close-btn {
+
+        .modal-close {
             background: none;
             border: none;
-            font-size: 1.5em;
+            color: var(--text-muted);
+            font-size: 2rem;
             cursor: pointer;
-            color: #6b7280;
-            padding: 0;
-            width: 30px;
-            height: 30px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 50%;
-            transition: all 0.3s;
+            line-height: 1;
+            transition: color 0.2s;
         }
         
-        .close-btn:hover {
-            background: #f3f4f6;
-            color: #1f2937;
+        .modal-close:hover {
+            color: var(--text-main);
         }
-        
+
+        /* Forms */
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 1rem;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            color: var(--text-main);
+            font-size: 1rem;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+
+        /* Tabs */
         .tabs {
             display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-            border-bottom: 2px solid #f3f4f6;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            background: rgba(0,0,0,0.2);
+            padding: 4px;
+            border-radius: 12px;
         }
-        
+
         .tab {
-            padding: 12px 20px;
-            background: none;
-            border: none;
-            cursor: pointer;
-            font-size: 1em;
-            font-weight: 500;
-            color: #6b7280;
-            border-bottom: 3px solid transparent;
-            transition: all 0.3s;
-        }
-        
-        .tab.active {
-            color: var(--primary);
-            border-bottom-color: var(--primary);
-        }
-        
-        .tab-content {
-            display: none;
-        }
-        
-        .tab-content.active {
-            display: block;
-        }
-        
-        .sound-list {
-            max-height: 300px;
-            overflow-y: auto;
-        }
-        
-        .sound-item {
-            padding: 12px;
-            border: 2px solid #e5e7eb;
-            border-radius: 10px;
-            margin-bottom: 10px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            transition: all 0.3s;
-        }
-        
-        .sound-item:hover {
-            border-color: var(--primary);
-            background: #f9fafb;
-        }
-        
-        .sound-item.selected {
-            border-color: var(--primary);
-            background: #eef2ff;
-        }
-        
-        .file-upload {
-            border: 2px dashed #cbd5e1;
-            border-radius: 10px;
-            padding: 30px;
+            flex: 1;
+            padding: 0.8rem;
             text-align: center;
             cursor: pointer;
+            border-radius: 8px;
+            color: var(--text-muted);
             transition: all 0.3s;
         }
-        
-        .file-upload:hover {
-            border-color: var(--primary);
-            background: #f9fafb;
+
+        .tab.active {
+            background: var(--bg-card);
+            color: var(--text-main);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
-        
-        .file-upload input {
+
+        /* Day Selector */
+        .day-selector {
+            display: flex;
+            justify-content: space-between;
+            gap: 5px;
+            margin: 1rem 0;
+        }
+
+        .day-checkbox {
             display: none;
         }
+
+        .day-label {
+            flex: 1;
+            text-align: center;
+            padding: 10px 0;
+            background: rgba(255,255,255,0.05);
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            transition: all 0.3s;
+            border: 1px solid transparent;
+        }
+
+        .day-checkbox:checked + .day-label {
+            background: rgba(99, 102, 241, 0.15);
+            color: var(--accent-primary);
+            border-color: var(--accent-primary);
+            font-weight: 600;
+        }
+
+        /* Status Items */
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 1rem;
+            background: rgba(255,255,255,0.03);
+            border-radius: 12px;
+            margin-bottom: 0.5rem;
+            border: 1px solid transparent;
+            transition: border-color 0.3s;
+        }
         
-        .loading {
-            opacity: 0.6;
-            pointer-events: none;
+        .status-item:hover {
+            border-color: rgba(255,255,255,0.1);
+        }
+        
+        .status-label {
+            color: var(--text-muted);
+        }
+        
+        .status-value {
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+                padding: 0 1rem;
+            }
+            
+            .time-display {
+                font-size: 3.5rem;
+            }
+            
+            .navbar {
+                padding: 1rem;
+            }
+        }
+        
+        /* Role Badge */
+        .role-badge {
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-left: 8px;
+        }
+        
+        .role-admin {
+            background: rgba(168, 85, 247, 0.2);
+            color: #d8b4fe;
+            border: 1px solid rgba(168, 85, 247, 0.3);
+        }
+        
+        .role-user {
+            background: rgba(99, 102, 241, 0.2);
+            color: #c7d2fe;
+            border: 1px solid rgba(99, 102, 241, 0.3);
         }
     </style>
 </head>
@@ -590,8 +552,8 @@
             <div class="navbar-title">⏰ Wecker</div>
         </div>
         <div style="display: flex; align-items: center; gap: 15px;">
-            <div class="user-info">
-                <span id="username"></span>
+            <div style="display: flex; align-items: center;">
+                <span id="username" style="color: var(--text-main); font-weight: 500;"></span>
                 <span class="role-badge" id="roleBadge"></span>
             </div>
             <button class="btn btn-secondary" onclick="logout()">Abmelden</button>
@@ -599,40 +561,52 @@
     </div>
     
     <div class="container">
-        <div class="grid">
-            <div class="card">
-                <div class="card-header">
+        <!-- Time Card -->
+        <div class="grid" style="display: grid; grid-template-columns: 1fr; gap: 2rem; width: 100%;">
+            <div class="card" style="text-align: center;">
+                <div class="card-header" style="justify-content: center;">
                     <div class="card-title">Aktuelle Zeit</div>
                 </div>
                 <div class="time-display" id="currentTime">--:--:--</div>
-                <div class="date-display" id="currentDate"></div>
+                <div class="date-display" id="currentDate">Loading...</div>
             </div>
             
+            <!-- System Status -->
             <div class="card">
                 <div class="card-header">
                     <div class="card-title">System Status</div>
                     <div id="adminHardwareTest" style="display: none;">
-                        <button class="btn btn-secondary" onclick="openHardwareTestModal()" style="font-size: 0.9em; padding: 8px 16px;">
-                            🔧 Hardware testen
+                        <button class="btn btn-secondary" onclick="openHardwareTestModal()" style="font-size: 0.85rem; padding: 6px 12px;">
+                            🔧 Testen
                         </button>
                     </div>
                 </div>
                 <div id="systemStatus">
-                    <div style="display: flex; flex-direction: column; gap: 10px;">
-                        <div><strong>Hardware:</strong> <span id="hardwareStatus">Prüfe...</span></div>
-                        <div><strong>Alarme:</strong> <span id="alarmCount">-</span></div>
-                        <div><strong>Aktiver Alarm:</strong> <span id="activeAlarmStatus">Keiner</span></div>
+                    <div class="status-item">
+                        <span class="status-label">Hardware</span>
+                        <span class="status-value" id="hardwareStatus">Prüfe...</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">Alarme</span>
+                        <span class="status-value" id="alarmCount">-</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">Aktiver Alarm</span>
+                        <span class="status-value" id="activeAlarmStatus" style="color: var(--accent-primary);">Keiner</span>
                     </div>
                 </div>
             </div>
         </div>
         
-        <div class="card">
+        <!-- Alarms Card -->
+        <div class="card" style="grid-column: 1 / -1;">
             <div class="card-header">
-                <div class="card-title">Alarme</div>
+                <div class="card-title">Meine Alarme</div>
                 <button class="btn btn-primary" onclick="openAddAlarmModal()">+ Neuer Alarm</button>
             </div>
-            <div id="alarmList" class="loading">Lade Alarme...</div>
+            <div id="alarmList" class="alarm-list">
+                <div style="text-align: center; padding: 2rem; color: var(--text-muted);">Lade Alarme...</div>
+            </div>
         </div>
     </div>
     
@@ -644,32 +618,35 @@
                 <button class="modal-close" onclick="closeHardwareTestModal()">×</button>
             </div>
             <div class="modal-body">
-                <div style="display: flex; flex-direction: column; gap: 20px;">
-                    <div>
-                        <h3 style="margin-bottom: 10px;">Display-Test</h3>
-                        <p style="color: #666; margin-bottom: 10px;">Zeigt "TEST" auf dem Display für 2 Sekunden</p>
-                        <button class="btn btn-primary" onclick="testDisplay()" id="testDisplayBtn">
-                            📺 Display testen
-                        </button>
-                        <div id="displayTestResult" style="margin-top: 10px;"></div>
+                <div style="display: flex; flex-direction: column; gap: 15px;">
+                    <div class="status-item" style="display: block;">
+                        <h3 style="margin-bottom: 10px; font-size: 1rem;">Display</h3>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <button class="btn btn-primary" onclick="testDisplay()" id="testDisplayBtn" style="flex: 1;">
+                                📺 Testen
+                            </button>
+                            <div id="displayTestResult" style="flex: 1;"></div>
+                        </div>
                     </div>
                     
-                    <div style="border-top: 1px solid #e5e7eb; padding-top: 20px;">
-                        <h3 style="margin-bottom: 10px;">Sound-Test</h3>
-                        <p style="color: #666; margin-bottom: 10px;">Spielt 2 Sekunden Test-Sound ab</p>
-                        <button class="btn btn-primary" onclick="testSound()" id="testSoundBtn">
-                            🔊 Sound testen
-                        </button>
-                        <div id="soundTestResult" style="margin-top: 10px;"></div>
+                    <div class="status-item" style="display: block;">
+                        <h3 style="margin-bottom: 10px; font-size: 1rem;">Sound</h3>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <button class="btn btn-primary" onclick="testSound()" id="testSoundBtn" style="flex: 1;">
+                                🔊 Testen
+                            </button>
+                            <div id="soundTestResult" style="flex: 1;"></div>
+                        </div>
                     </div>
                     
-                    <div style="border-top: 1px solid #e5e7eb; padding-top: 20px;">
-                        <h3 style="margin-bottom: 10px;">Button-Test</h3>
-                        <p style="color: #666; margin-bottom: 10px;">Liest den aktuellen Button-Status</p>
-                        <button class="btn btn-primary" onclick="testButton()" id="testButtonBtn">
-                            🔘 Button-Status prüfen
-                        </button>
-                        <div id="buttonTestResult" style="margin-top: 10px;"></div>
+                    <div class="status-item" style="display: block;">
+                        <h3 style="margin-bottom: 10px; font-size: 1rem;">Button</h3>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <button class="btn btn-primary" onclick="testButton()" id="testButtonBtn" style="flex: 1;">
+                                🔘 Status
+                            </button>
+                            <div id="buttonTestResult" style="flex: 1;"></div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -681,111 +658,84 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h2 id="modalTitle">Neuer Alarm</h2>
-                <button class="close-btn" onclick="closeAlarmModal()">&times;</button>
+                <button class="modal-close" onclick="closeAlarmModal()">×</button>
             </div>
             <form id="alarmForm">
                 <input type="hidden" id="alarmId">
                 
                 <div class="form-group">
                     <label for="alarmTime">Zeit</label>
-                    <input type="time" id="alarmTime" required>
+                    <input type="time" id="alarmTime" class="form-control" required style="font-size: 1.5rem; text-align: center;">
                 </div>
                 
                 <div class="form-group">
                     <label for="alarmLabel">Bezeichnung</label>
-                    <input type="text" id="alarmLabel" placeholder="z.B. Aufstehen">
+                    <input type="text" id="alarmLabel" class="form-control" placeholder="z.B. Arbeit">
                 </div>
                 
                 <div class="form-group">
                     <label>Wiederholung</label>
-                    <div class="days-selector">
-                        <div class="day-checkbox">
-                            <input type="checkbox" id="day0" value="0">
-                            <label for="day0">Mo</label>
-                        </div>
-                        <div class="day-checkbox">
-                            <input type="checkbox" id="day1" value="1">
-                            <label for="day1">Di</label>
-                        </div>
-                        <div class="day-checkbox">
-                            <input type="checkbox" id="day2" value="2">
-                            <label for="day2">Mi</label>
-                        </div>
-                        <div class="day-checkbox">
-                            <input type="checkbox" id="day3" value="3">
-                            <label for="day3">Do</label>
-                        </div>
-                        <div class="day-checkbox">
-                            <input type="checkbox" id="day4" value="4">
-                            <label for="day4">Fr</label>
-                        </div>
-                        <div class="day-checkbox">
-                            <input type="checkbox" id="day5" value="5">
-                            <label for="day5">Sa</label>
-                        </div>
-                        <div class="day-checkbox">
-                            <input type="checkbox" id="day6" value="6">
-                            <label for="day6">So</label>
-                        </div>
+                    <div class="day-selector">
+                        <input type="checkbox" id="day0" class="day-checkbox"><label for="day0" class="day-label">Mo</label>
+                        <input type="checkbox" id="day1" class="day-checkbox"><label for="day1" class="day-label">Di</label>
+                        <input type="checkbox" id="day2" class="day-checkbox"><label for="day2" class="day-label">Mi</label>
+                        <input type="checkbox" id="day3" class="day-checkbox"><label for="day3" class="day-label">Do</label>
+                        <input type="checkbox" id="day4" class="day-checkbox"><label for="day4" class="day-label">Fr</label>
+                        <input type="checkbox" id="day5" class="day-checkbox"><label for="day5" class="day-label">Sa</label>
+                        <input type="checkbox" id="day6" class="day-checkbox"><label for="day6" class="day-label">So</label>
                     </div>
-                    <small style="color: #6b7280; margin-top: 8px; display: block;">
-                        Keine Auswahl = einmaliger Alarm
-                    </small>
                 </div>
                 
                 <div class="form-group">
-                    <label for="alarmSound">Sound</label>
+                    <label>Sound</label>
                     <div class="tabs">
-                        <button type="button" class="tab active" onclick="switchSoundTab('default')">Standard</button>
-                        <button type="button" class="tab" onclick="switchSoundTab('custom')">Custom</button>
+                        <div class="tab active" onclick="switchSoundTab('default')" id="tab-default">Standard</div>
+                        <div class="tab" onclick="switchSoundTab('custom')" id="tab-custom">Custom</div>
                     </div>
-                    <div class="tab-content active" id="defaultSoundTab">
-                        <select id="defaultSound">
+                    
+                    <div class="tab-content" id="defaultSoundTab">
+                        <select class="form-control" id="defaultSoundSelect">
                             <option value="">Standard Beep</option>
                         </select>
                     </div>
-                    <div class="tab-content" id="customSoundTab">
-                        <div id="soundList" class="sound-list"></div>
-                        <div class="file-upload" onclick="document.getElementById('soundUpload').click()">
-                            <input type="file" id="soundUpload" accept="audio/*" onchange="uploadSound()">
-                            <div>📁 Sound hochladen (WAV, MP3, OGG)</div>
+                    <div class="tab-content" id="customSoundTab" style="display: none;">
+                        <div id="soundList" style="margin-bottom: 10px; max-height: 100px; overflow-y: auto;"></div>
+                        <div class="status-item" style="cursor: pointer;" onclick="document.getElementById('soundUpload').click()">
+                            <input type="file" id="soundUpload" accept="audio/*" onchange="uploadSound()" style="display: none;">
+                            <div style="width: 100%; text-align: center;">📁 Sound hochladen</div>
                         </div>
                     </div>
                 </div>
                 
-                <div class="form-group">
-                    <div class="toggle-group">
-                        <label for="snoozeAllowed">Snooze erlauben</label>
-                        <label class="switch">
-                            <input type="checkbox" id="snoozeAllowed" checked>
-                            <span class="slider"></span>
-                        </label>
-                    </div>
+                <div class="form-group" style="display: flex; justify-content: space-between; align-items: center;">
+                    <label for="snoozeAllowed" style="margin: 0;">Snooze erlauben</label>
+                    <label class="switch">
+                        <input type="checkbox" id="snoozeAllowed" checked>
+                        <span class="slider"></span>
+                    </label>
                 </div>
                 
                 <div class="form-group" id="snoozeDurationGroup">
                     <label for="snoozeDuration">Snooze-Dauer (Minuten)</label>
-                    <input type="number" id="snoozeDuration" min="1" max="60" value="5">
+                    <input type="number" id="snoozeDuration" class="form-control" value="5" min="1" max="60">
                 </div>
                 
-                <div class="form-group">
-                    <div class="toggle-group">
-                        <label for="alarmEnabled">Aktiviert</label>
-                        <label class="switch">
-                            <input type="checkbox" id="alarmEnabled" checked>
-                            <span class="slider"></span>
-                        </label>
-                    </div>
+                <div class="form-group" style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px;">
+                    <label for="alarmEnabled" style="margin: 0;">Aktiviert</label>
+                    <label class="switch">
+                        <input type="checkbox" id="alarmEnabled" checked>
+                        <span class="slider"></span>
+                    </label>
                 </div>
                 
-                <button type="submit" class="btn btn-primary" style="width: 100%; padding: 14px; font-size: 1.1em;">
-                    Alarm speichern
-                </button>
+                <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 20px; padding: 1rem;">Speichern</button>
             </form>
         </div>
     </div>
-    
+
+    <!-- Scripts -->
     <script>
+        // Global State
         let currentUser = null;
         let activeAlarmId = null;
         let sounds = [];
@@ -797,9 +747,9 @@
             try {
                 await loadUserInfo();
                 await loadAlarms();
-                await loadSounds();
-                await loadSystemStatus();
                 updateTime();
+                
+                // Polling
                 setInterval(updateTime, 1000);
                 setInterval(loadAlarms, 2000);
                 setInterval(loadSystemStatus, 5000);
@@ -811,10 +761,110 @@
                 });
             } catch (error) {
                 console.error('Initialization error:', error);
-                alert('Fehler beim Laden der Seite. Bitte Seite neu laden.');
             }
         }
         
+        // --- Hardware Tests ---
+        function openHardwareTestModal() {
+            document.getElementById('hardwareTestModal').classList.add('active');
+        }
+        
+        function closeHardwareTestModal() {
+            document.getElementById('hardwareTestModal').classList.remove('active');
+            document.getElementById('displayTestResult').innerHTML = '';
+            document.getElementById('soundTestResult').innerHTML = '';
+            document.getElementById('buttonTestResult').innerHTML = '';
+        }
+        
+        async function testDisplay() {
+            const btn = document.getElementById('testDisplayBtn');
+            const result = document.getElementById('displayTestResult');
+            const originalText = btn.innerHTML;
+            
+            btn.disabled = true;
+            btn.innerHTML = '⏳';
+            result.innerHTML = '';
+            
+            try {
+                const response = await fetch('/api/hardware/test/display', {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    result.innerHTML = '<span style="color: #10b981;">✓ OK</span>';
+                } else {
+                    result.innerHTML = '<span style="color: #ef4444;">✗ ' + (data.error || 'Fehler') + '</span>';
+                }
+            } catch (error) {
+                result.innerHTML = '<span style="color: #ef4444;">✗ Fehler</span>';
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }
+        }
+        
+        async function testSound() {
+            const btn = document.getElementById('testSoundBtn');
+            const result = document.getElementById('soundTestResult');
+            const originalText = btn.innerHTML;
+            
+            btn.disabled = true;
+            btn.innerHTML = '⏳';
+            result.innerHTML = '';
+            
+            try {
+                const response = await fetch('/api/hardware/test/sound', {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    result.innerHTML = '<span style="color: #10b981;">✓ OK</span>';
+                } else {
+                    result.innerHTML = '<span style="color: #ef4444;">✗ ' + (data.error || 'Fehler') + '</span>';
+                }
+            } catch (error) {
+                result.innerHTML = '<span style="color: #ef4444;">✗ Fehler</span>';
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }
+        }
+        
+        async function testButton() {
+            const btn = document.getElementById('testButtonBtn');
+            const result = document.getElementById('buttonTestResult');
+            const originalText = btn.innerHTML;
+            
+            btn.disabled = true;
+            btn.innerHTML = '⏳';
+            result.innerHTML = '';
+            
+            try {
+                const response = await fetch('/api/hardware/test/button', {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    const status = data.button_pressed ? 'Gedrückt' : 'Losgelassen';
+                    const color = data.button_pressed ? '#10b981' : '#94a3b8';
+                    result.innerHTML = `<span style="color: ${color}; font-weight: 600;">${status}</span>`;
+                } else {
+                    result.innerHTML = '<span style="color: #ef4444;">✗ Fehler</span>';
+                }
+            } catch (error) {
+                result.innerHTML = '<span style="color: #ef4444;">✗ Fehler</span>';
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }
+        }
+
         async function loadSystemStatus() {
             try {
                 const response = await fetch('/api/status', {
@@ -828,10 +878,15 @@
                     if (contentType && contentType.includes('application/json')) {
                         const data = await response.json();
                         document.getElementById('hardwareStatus').textContent = 
-                            data.hardware_available ? 'Verfügbar ✓' : 'Nicht verfügbar ✗';
+                            data.hardware_available ? 'Verfügbar' : 'Nicht verfügbar';
+                        document.getElementById('hardwareStatus').style.color = 
+                            data.hardware_available ? '#10b981' : '#ef4444';
+                            
                         document.getElementById('alarmCount').textContent = data.alarm_count;
-                        document.getElementById('activeAlarmStatus').textContent = 
-                            data.active_alarm ? (data.active_alarm.label || data.active_alarm.time) : 'Keiner';
+                        
+                        const activeAlarm = document.getElementById('activeAlarmStatus');
+                        activeAlarm.textContent = data.active_alarm ? (data.active_alarm.label || data.active_alarm.time) : 'Keiner';
+                        activeAlarm.style.color = data.active_alarm ? '#a855f7' : 'var(--text-muted)';
                     }
                 }
             } catch (error) {
@@ -843,23 +898,18 @@
             try {
                 const response = await fetch('/api/auth/me', {
                     credentials: 'include',
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest'
-                    }
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
                 });
                 if (response.ok) {
-                    const contentType = response.headers.get('content-type');
-                    if (contentType && contentType.includes('application/json')) {
-                        currentUser = await response.json();
-                        document.getElementById('username').textContent = currentUser.username;
-                        const roleBadge = document.getElementById('roleBadge');
-                        roleBadge.textContent = currentUser.role.toUpperCase();
-                        roleBadge.className = 'role-badge role-' + currentUser.role;
-                        
-                        // Zeige Hardware-Test Button nur für Admins
-                        if (currentUser.role === 'admin') {
-                            document.getElementById('adminHardwareTest').style.display = 'block';
-                        }
+                    const data = await response.json();
+                    currentUser = data;
+                    document.getElementById('username').textContent = data.username;
+                    const roleBadge = document.getElementById('roleBadge');
+                    roleBadge.textContent = data.role;
+                    roleBadge.className = 'role-badge role-' + data.role;
+                    
+                    if (data.role === 'admin') {
+                        document.getElementById('adminHardwareTest').style.display = 'block';
                     }
                 } else {
                     window.location.href = '/login';
@@ -869,144 +919,8 @@
             }
         }
         
-        function openHardwareTestModal() {
-            document.getElementById('hardwareTestModal').classList.add('active');
-        }
-        
-        function closeHardwareTestModal() {
-            document.getElementById('hardwareTestModal').classList.remove('active');
-            // Reset results
-            document.getElementById('displayTestResult').innerHTML = '';
-            document.getElementById('soundTestResult').innerHTML = '';
-            document.getElementById('buttonTestResult').innerHTML = '';
-        }
-        
-        async function testDisplay() {
-            const btn = document.getElementById('testDisplayBtn');
-            const result = document.getElementById('displayTestResult');
-            const originalText = btn.innerHTML;
-            
-            btn.disabled = true;
-            btn.innerHTML = '⏳ Teste...';
-            result.innerHTML = '';
-            
-            try {
-                const response = await fetch('/api/hardware/test/display', {
-                    method: 'POST',
-                    credentials: 'include',
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest'
-                    }
-                });
-                
-                const contentType = response.headers.get('content-type');
-                if (contentType && contentType.includes('application/json')) {
-                    const data = await response.json();
-                    
-                    if (response.ok) {
-                        result.innerHTML = '<div style="color: #10b981; margin-top: 10px;">✓ ' + (data.message || 'Display-Test erfolgreich') + '</div>';
-                    } else {
-                        result.innerHTML = '<div style="color: #ef4444; margin-top: 10px;">✗ ' + (data.error || 'Display-Test fehlgeschlagen') + '</div>';
-                    }
-                } else {
-                    result.innerHTML = '<div style="color: #ef4444; margin-top: 10px;">✗ Ungültige Server-Antwort</div>';
-                }
-            } catch (error) {
-                console.error('Display test error:', error);
-                result.innerHTML = '<div style="color: #ef4444; margin-top: 10px;">✗ Fehler: ' + error.message + '</div>';
-            } finally {
-                btn.disabled = false;
-                btn.innerHTML = originalText;
-            }
-        }
-        
-        async function testSound() {
-            const btn = document.getElementById('testSoundBtn');
-            const result = document.getElementById('soundTestResult');
-            const originalText = btn.innerHTML;
-            
-            btn.disabled = true;
-            btn.innerHTML = '⏳ Teste...';
-            result.innerHTML = '';
-            
-            try {
-                const response = await fetch('/api/hardware/test/sound', {
-                    method: 'POST',
-                    credentials: 'include',
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest'
-                    }
-                });
-                
-                const contentType = response.headers.get('content-type');
-                if (contentType && contentType.includes('application/json')) {
-                    const data = await response.json();
-                    
-                    if (response.ok) {
-                        result.innerHTML = '<div style="color: #10b981; margin-top: 10px;">✓ ' + (data.message || 'Sound-Test erfolgreich') + '</div>';
-                    } else {
-                        result.innerHTML = '<div style="color: #ef4444; margin-top: 10px;">✗ ' + (data.error || 'Sound-Test fehlgeschlagen') + '</div>';
-                    }
-                } else {
-                    result.innerHTML = '<div style="color: #ef4444; margin-top: 10px;">✗ Ungültige Server-Antwort</div>';
-                }
-            } catch (error) {
-                console.error('Sound test error:', error);
-                result.innerHTML = '<div style="color: #ef4444; margin-top: 10px;">✗ Fehler: ' + error.message + '</div>';
-            } finally {
-                btn.disabled = false;
-                btn.innerHTML = originalText;
-            }
-        }
-        
-        async function testButton() {
-            const btn = document.getElementById('testButtonBtn');
-            const result = document.getElementById('buttonTestResult');
-            const originalText = btn.innerHTML;
-            
-            btn.disabled = true;
-            btn.innerHTML = '⏳ Prüfe...';
-            result.innerHTML = '';
-            
-            try {
-                const response = await fetch('/api/hardware/test/button', {
-                    method: 'POST',
-                    credentials: 'include',
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest'
-                    }
-                });
-                
-                const contentType = response.headers.get('content-type');
-                if (contentType && contentType.includes('application/json')) {
-                    const data = await response.json();
-                    
-                    if (response.ok) {
-                        const statusColor = data.button_pressed ? '#10b981' : '#6b7280';
-                        const statusIcon = data.button_pressed ? '✓' : '○';
-                        result.innerHTML = '<div style="margin-top: 10px;">' +
-                            '<div style="color: ' + statusColor + '; font-weight: bold;">' + 
-                            statusIcon + ' Button-Status: ' + data.button_state + '</div>' +
-                            '<div style="color: #666; font-size: 0.9em; margin-top: 5px;">' + 
-                            (data.message || '') + '</div>' +
-                            '</div>';
-                    } else {
-                        result.innerHTML = '<div style="color: #ef4444; margin-top: 10px;">✗ ' + (data.error || 'Button-Test fehlgeschlagen') + '</div>';
-                    }
-                } else {
-                    result.innerHTML = '<div style="color: #ef4444; margin-top: 10px;">✗ Ungültige Server-Antwort</div>';
-                }
-            } catch (error) {
-                console.error('Button test error:', error);
-                result.innerHTML = '<div style="color: #ef4444; margin-top: 10px;">✗ Fehler: ' + error.message + '</div>';
-            } finally {
-                btn.disabled = false;
-                btn.innerHTML = originalText;
-            }
-        }
-        
         function updateTime() {
-            // Timeout-Controller für ältere Browser
+            // Timeout-Controller für Fetch
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 5000);
             
@@ -1018,37 +932,25 @@
                 signal: controller.signal
             })
                 .then(res => {
-                    if (!res.ok) {
-                        throw new Error(`Time fetch failed: ${res.status} ${res.statusText}`);
-                    }
-                    const contentType = res.headers.get('content-type');
-                    if (contentType && contentType.includes('application/json')) {
-                        return res.json();
-                    }
-                    throw new Error('Invalid response format');
+                    if (!res.ok) throw new Error('Time fetch failed');
+                    return res.json();
                 })
                 .then(data => {
-                    clearTimeout(timeoutId);  // Timeout löschen bei Erfolg
-                    if (data && data.time && data.date) {
+                    clearTimeout(timeoutId);
+                    if (data && data.time) {
                         document.getElementById('currentTime').textContent = data.time;
                         document.getElementById('currentDate').textContent = data.date;
                     }
                 })
                 .catch(err => {
-                    clearTimeout(timeoutId);  // Timeout löschen bei Fehler
-                    // Nur loggen wenn es nicht ein AbortError ist (Timeout)
-                    if (err.name !== 'AbortError' && err.name !== 'TypeError') {
-                        console.error('Error fetching time:', err);
-                    }
-                    // Fallback: Lokale Zeit anzeigen
-                    try {
+                    clearTimeout(timeoutId);
+                    if (err.name !== 'AbortError') {
+                        // Fallback
                         const now = new Date();
                         document.getElementById('currentTime').textContent = 
                             now.toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit', second: '2-digit'});
                         document.getElementById('currentDate').textContent = 
                             now.toLocaleDateString('de-DE');
-                    } catch (fallbackError) {
-                        // Ignoriere Fallback-Fehler
                     }
                 });
         }
@@ -1056,349 +958,113 @@
         async function loadAlarms() {
             try {
                 const response = await fetch('/api/alarms', {
-                    credentials: 'include',  // Wichtig für Cookies/Sessions
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest'
-                    }
+                    credentials: 'include',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
                 });
                 
-                if (!response.ok) {
-                    if (response.status === 401) {
-                        window.location.href = '/login';
-                        return;
-                    }
-                    throw new Error('Fehler beim Laden der Alarme');
-                }
-                
-                // Prüfe Content-Type bevor JSON-Parse
-                const contentType = response.headers.get('content-type');
-                if (!contentType || !contentType.includes('application/json')) {
-                    const text = await response.text();
-                    console.error('Non-JSON response:', text);
-                    throw new Error('Ungültige Server-Antwort');
-                }
-                
-                const data = await response.json();
-                const alarms = data.alarms || [];
-                activeAlarmId = data.active_alarm ? data.active_alarm.id : null;
-                
-                const alarmList = document.getElementById('alarmList');
-                alarmList.classList.remove('loading');
-                
-                if (alarms.length === 0) {
-                    alarmList.innerHTML = `
-                        <div class="empty-state">
-                            <div class="empty-state-icon">⏰</div>
-                            <div>Keine Alarme vorhanden</div>
-                            <div style="margin-top: 10px; color: #9ca3af;">Fuege einen neuen Alarm hinzu</div>
-                        </div>
-                    `;
+                if (response.status === 401) {
+                    window.location.href = '/login';
                     return;
                 }
                 
-                alarmList.innerHTML = alarms.map(alarm => {
-                    const isActive = activeAlarmId === alarm.id;
-                    const days = alarm.days || [];
-                    const dayNames = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
-                    const dayLabels = days.length > 0 
-                        ? days.map(d => dayNames[d]).join(', ')
-                        : 'Einmalig';
+                if (response.ok) {
+                    const data = await response.json();
+                    renderAlarms(data.alarms);
                     
-                    return `
-                        <div class="alarm-item ${isActive ? 'active' : ''}">
-                            <div>
-                                <div class="alarm-header">
-                                    <div class="alarm-time">${alarm.time}</div>
-                                    ${!alarm.enabled ? '<span style="color: #ef4444; font-size: 0.9em;">Deaktiviert</span>' : ''}
-                                </div>
-                                ${alarm.label ? `<div class="alarm-label">${alarm.label}</div>` : ''}
-                                <div class="alarm-meta">
-                                    <span class="meta-badge badge-days">${dayLabels}</span>
-                                    ${alarm.sound_file ? '<span class="meta-badge badge-sound">🎵 Custom Sound</span>' : ''}
-                                    ${alarm.snooze_allowed ? 
-                                        `<span class="meta-badge badge-snooze">Snooze: ${alarm.snooze_duration}min</span>` :
-                                        '<span class="meta-badge badge-no-snooze">Kein Snooze</span>'
-                                    }
-                                </div>
-                            </div>
-                            <div class="alarm-actions">
-                                ${isActive ? `
-                                    ${alarm.snooze_allowed ? 
-                                        `<button class="btn btn-warning" onclick="snoozeAlarm(${alarm.id})">Snooze</button>` : ''
-                                    }
-                                    <button class="btn btn-success" onclick="dismissAlarm(${alarm.id})">Ausschalten</button>
-                                ` : ''}
-                                <button class="btn btn-primary" onclick="editAlarm(${alarm.id})">Bearbeiten</button>
-                                <button class="btn btn-danger" onclick="deleteAlarm(${alarm.id})">Löschen</button>
-                            </div>
-                        </div>
-                    `;
-                }).join('');
+                    // Handle active alarm
+                    if (data.active_alarm && (!activeAlarmId || activeAlarmId !== data.active_alarm.id)) {
+                        activeAlarmId = data.active_alarm.id;
+                        showActiveAlarm(data.active_alarm);
+                    } else if (!data.active_alarm && activeAlarmId) {
+                        activeAlarmId = null;
+                    }
+                }
             } catch (error) {
                 console.error('Error loading alarms:', error);
-                const alarmList = document.getElementById('alarmList');
-                alarmList.classList.remove('loading');
-                alarmList.innerHTML = `
-                    <div class="empty-state">
-                        <div style="color: #ef4444;">Fehler beim Laden der Alarme</div>
-                        <button class="btn btn-primary" onclick="loadAlarms()" style="margin-top: 10px;">Erneut versuchen</button>
-                    </div>
-                `;
             }
         }
         
-        async function loadSounds() {
-            try {
-                const response = await fetch('/api/sounds', {
-                    credentials: 'include',
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest'
-                    }
-                });
-                if (!response.ok) {
-                    if (response.status === 401) {
-                        window.location.href = '/login';
-                        return;
-                    }
-                    throw new Error('Failed to load sounds');
-                }
-                
-                const contentType = response.headers.get('content-type');
-                if (!contentType || !contentType.includes('application/json')) {
-                    throw new Error('Invalid response format');
-                }
-                
-                const data = await response.json();
-                sounds = data.sounds || [];
-                
-                const soundList = document.getElementById('soundList');
-                if (!soundList) return;
-                
-                if (sounds.length === 0) {
-                    soundList.innerHTML = '<div class="empty-state" style="padding: 20px;">Keine Sounds vorhanden. Lade einen Sound hoch!</div>';
-                } else {
-                    soundList.innerHTML = sounds.map(sound => `
-                        <div class="sound-item" onclick="selectSound(${sound.id})" id="sound-${sound.id}">
-                            <span>🎵 ${sound.original_filename || sound.filename || 'Unbekannt'}</span>
-                            <button class="btn btn-danger" style="padding: 4px 8px; font-size: 0.8em;" 
-                                    onclick="event.stopPropagation(); deleteSound(${sound.id})">Löschen</button>
+        function renderAlarms(alarms) {
+            const list = document.getElementById('alarmList');
+            if (alarms.length === 0) {
+                list.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--text-muted);">Keine Alarme</div>';
+                return;
+            }
+            
+            list.innerHTML = alarms.map(alarm => `
+                <div class="alarm-item ${!alarm.enabled ? 'opacity-50' : ''}">
+                    <div onclick="openEditAlarmModal(${alarm.id})" style="flex: 1; cursor: pointer;">
+                        <div class="alarm-time">${alarm.time}</div>
+                        <div class="alarm-label">${alarm.label || 'Wecker'}</div>
+                        <div class="alarm-days">
+                            ${[0,1,2,3,4,5,6].map(d => `
+                                <span class="day-badge ${alarm.days && alarm.days.includes(d) ? 'active' : ''}">
+                                    ${['Mo','Di','Mi','Do','Fr','Sa','So'][d]}
+                                </span>
+                            `).join('')}
                         </div>
-                    `).join('');
-                }
-            } catch (error) {
-                console.error('Error loading sounds:', error);
-                const soundList = document.getElementById('soundList');
-                if (soundList) {
-                    soundList.innerHTML = '<div class="empty-state" style="padding: 20px; color: #ef4444;">Fehler beim Laden der Sounds</div>';
-                }
-            }
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <label class="switch">
+                            <input type="checkbox" ${alarm.enabled ? 'checked' : ''} 
+                                   onchange="toggleAlarm(${alarm.id}, this.checked)">
+                            <span class="slider"></span>
+                        </label>
+                        <button class="btn" onclick="deleteAlarm(${alarm.id})" 
+                                style="background: transparent; color: #ef4444; padding: 5px;">
+                            ✕
+                        </button>
+                    </div>
+                </div>
+            `).join('');
         }
         
-        function switchSoundTab(tab) {
-            currentSoundTab = tab;
-            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-            
-            if (tab === 'default') {
-                document.querySelector('.tab').classList.add('active');
-                document.getElementById('defaultSoundTab').classList.add('active');
-                selectedSoundId = null;
-            } else {
-                document.querySelectorAll('.tab')[1].classList.add('active');
-                document.getElementById('customSoundTab').classList.add('active');
-            }
-        }
-        
-        function selectSound(soundId) {
-            selectedSoundId = soundId;
-            document.querySelectorAll('.sound-item').forEach(item => {
-                item.classList.remove('selected');
-            });
-            document.getElementById(`sound-${soundId}`).classList.add('selected');
-        }
-        
-        async function uploadSound() {
-            const fileInput = document.getElementById('soundUpload');
-            const file = fileInput.files[0];
-            
-            if (!file) return;
-            
-            // Dateigröße prüfen (max 10MB)
-            if (file.size > 10 * 1024 * 1024) {
-                showNotification('Datei zu groß! Maximum: 10MB', 'error');
-                return;
-            }
-            
-            // Dateityp prüfen
-            const allowedTypes = ['audio/wav', 'audio/mpeg', 'audio/mp3', 'audio/ogg', 'audio/flac'];
-            if (!allowedTypes.includes(file.type) && !file.name.match(/\.(wav|mp3|ogg|flac)$/i)) {
-                showNotification('Ungültiger Dateityp! Erlaubt: WAV, MP3, OGG, FLAC', 'error');
-                return;
-            }
-            
-            const formData = new FormData();
-            formData.append('file', file);
-            
-            // Loading State
-            const uploadBtn = fileInput.parentElement;
-            const originalText = uploadBtn.innerHTML;
-            uploadBtn.innerHTML = '<div>⏳ Lade hoch...</div>';
-            uploadBtn.style.pointerEvents = 'none';
-            
-            try {
-                const response = await fetch('/api/sounds', {
-                    method: 'POST',
-                    credentials: 'include',
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest'
-                    },
-                    body: formData,
-                    timeout: 60000  // 60 Sekunden Timeout
-                });
-                
-                if (response.ok) {
-                    const contentType = response.headers.get('content-type');
-                    if (contentType && contentType.includes('application/json')) {
-                        await loadSounds();
-                        fileInput.value = '';
-                        uploadBtn.innerHTML = originalText;
-                        uploadBtn.style.pointerEvents = 'auto';
-                        showNotification('✓ Sound erfolgreich hochgeladen!', 'success');
-                    } else {
-                        throw new Error('Invalid response format');
-                    }
-                } else {
-                    const contentType = response.headers.get('content-type');
-                    if (contentType && contentType.includes('application/json')) {
-                        const error = await response.json();
-                        showNotification('Fehler: ' + (error.error || 'Upload fehlgeschlagen'), 'error');
-                    } else {
-                        const text = await response.text();
-                        showNotification('Fehler: ' + text.substring(0, 100), 'error');
-                    }
-                    uploadBtn.innerHTML = originalText;
-                    uploadBtn.style.pointerEvents = 'auto';
-                }
-            } catch (error) {
-                console.error('Upload error:', error);
-                if (error.name === 'TypeError' && error.message.includes('timeout')) {
-                    showNotification('Upload-Timeout. Bitte erneut versuchen.', 'error');
-                } else {
-                    showNotification('Fehler beim Upload: ' + error.message, 'error');
-                }
-                uploadBtn.innerHTML = originalText;
-                uploadBtn.style.pointerEvents = 'auto';
-            }
-        }
-        
-        async function deleteSound(soundId) {
-            if (!confirm('Sound wirklich loeschen?')) return;
-            
-            try {
-                const response = await fetch(`/api/sounds/${soundId}`, {
-                    method: 'DELETE',
-                    credentials: 'include',
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest'
-                    }
-                });
-                
-                if (response.ok) {
-                    await loadSounds();
-                    showNotification('Sound erfolgreich gelöscht', 'success');
-                } else {
-                    const contentType = response.headers.get('content-type');
-                    if (contentType && contentType.includes('application/json')) {
-                        const error = await response.json();
-                        showNotification('Fehler: ' + (error.error || 'Löschen fehlgeschlagen'), 'error');
-                    } else {
-                        showNotification('Fehler beim Löschen', 'error');
-                    }
-                }
-            } catch (error) {
-                console.error('Delete sound error:', error);
-                showNotification('Fehler: ' + error.message, 'error');
-            }
-        }
-        
+        // Modal Functions
         function openAddAlarmModal() {
             document.getElementById('modalTitle').textContent = 'Neuer Alarm';
-            document.getElementById('alarmForm').reset();
             document.getElementById('alarmId').value = '';
+            document.getElementById('alarmTime').value = '';
+            document.getElementById('alarmLabel').value = '';
             document.getElementById('alarmEnabled').checked = true;
             document.getElementById('snoozeAllowed').checked = true;
             document.getElementById('snoozeDuration').value = 5;
-            selectedSoundId = null;
-            switchSoundTab('default');
+            document.getElementById('snoozeDurationGroup').style.display = 'block';
+            
+            // Reset Days
+            for(let i=0; i<7; i++) document.getElementById(`day${i}`).checked = false;
+            
             document.getElementById('alarmModal').classList.add('active');
         }
         
-        async function editAlarm(id) {
+        async function openEditAlarmModal(id) {
             try {
+                // Fetch alarm details first
                 const response = await fetch('/api/alarms', {
                     credentials: 'include',
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest'
-                    }
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
                 });
-                if (!response.ok) {
-                    throw new Error('Failed to load alarms');
-                }
-                
-                const contentType = response.headers.get('content-type');
-                if (!contentType || !contentType.includes('application/json')) {
-                    throw new Error('Invalid response format');
-                }
-                
                 const data = await response.json();
                 const alarm = data.alarms.find(a => a.id === id);
                 
-                if (!alarm) {
-                    showNotification('Alarm nicht gefunden', 'error');
-                    return;
-                }
-                
-                document.getElementById('modalTitle').textContent = 'Alarm bearbeiten';
-                document.getElementById('alarmId').value = alarm.id;
-                document.getElementById('alarmTime').value = alarm.time;
-                document.getElementById('alarmLabel').value = alarm.label || '';
-                document.getElementById('alarmEnabled').checked = alarm.enabled !== false;
-                document.getElementById('snoozeAllowed').checked = alarm.snooze_allowed !== false;
-                document.getElementById('snoozeDuration').value = alarm.snooze_duration || 5;
-                
-                // Snooze duration group visibility
-                document.getElementById('snoozeDurationGroup').style.display = 
-                    alarm.snooze_allowed !== false ? 'block' : 'none';
-                
-                // Set days
-                for (let i = 0; i < 7; i++) {
-                    const checkbox = document.getElementById(`day${i}`);
-                    if (checkbox) {
-                        checkbox.checked = alarm.days && Array.isArray(alarm.days) && alarm.days.includes(i);
+                if (alarm) {
+                    document.getElementById('modalTitle').textContent = 'Alarm bearbeiten';
+                    document.getElementById('alarmId').value = alarm.id;
+                    document.getElementById('alarmTime').value = alarm.time;
+                    document.getElementById('alarmLabel').value = alarm.label;
+                    document.getElementById('alarmEnabled').checked = alarm.enabled;
+                    document.getElementById('snoozeAllowed').checked = alarm.snooze_allowed;
+                    document.getElementById('snoozeDuration').value = alarm.snooze_duration;
+                    document.getElementById('snoozeDurationGroup').style.display = alarm.snooze_allowed ? 'block' : 'none';
+                    
+                    // Set Days
+                    for(let i=0; i<7; i++) {
+                        document.getElementById(`day${i}`).checked = alarm.days && alarm.days.includes(i);
                     }
+                    
+                    document.getElementById('alarmModal').classList.add('active');
                 }
-                
-                // Set sound
-                if (alarm.sound_file) {
-                    selectedSoundId = parseInt(alarm.sound_file) || alarm.sound_file;
-                    switchSoundTab('custom');
-                    // Warte bis Sounds geladen sind
-                    await loadSounds();
-                    setTimeout(() => {
-                        const soundElement = document.getElementById(`sound-${selectedSoundId}`);
-                        if (soundElement) {
-                            selectSound(selectedSoundId);
-                        }
-                    }, 200);
-                } else {
-                    switchSoundTab('default');
-                    selectedSoundId = null;
-                }
-                
-                document.getElementById('alarmModal').classList.add('active');
             } catch (error) {
-                console.error('Error editing alarm:', error);
-                showNotification('Fehler beim Laden des Alarms: ' + error.message, 'error');
+                console.error('Error opening edit modal:', error);
             }
         }
         
@@ -1406,14 +1072,45 @@
             document.getElementById('alarmModal').classList.remove('active');
         }
         
+        // Alarm Actions
+        async function toggleAlarm(id, enabled) {
+            try {
+                await fetch(`/api/alarms/${id}`, {
+                    method: 'PUT',
+                    credentials: 'include',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: JSON.stringify({ enabled })
+                });
+                loadAlarms();
+            } catch (error) {
+                console.error('Error toggling alarm:', error);
+            }
+        }
+        
+        async function deleteAlarm(id) {
+            if (!confirm('Alarm wirklich löschen?')) return;
+            try {
+                await fetch(`/api/alarms/${id}`, {
+                    method: 'DELETE',
+                    credentials: 'include',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+                loadAlarms();
+            } catch (error) {
+                console.error('Error deleting alarm:', error);
+            }
+        }
+        
+        // Form Submit
         document.getElementById('alarmForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
             const days = [];
-            for (let i = 0; i < 7; i++) {
-                if (document.getElementById(`day${i}`).checked) {
-                    days.push(i);
-                }
+            for(let i=0; i<7; i++) {
+                if(document.getElementById(`day${i}`).checked) days.push(i);
             }
             
             const alarmData = {
@@ -1422,192 +1119,59 @@
                 days: days.length > 0 ? days : null,
                 enabled: document.getElementById('alarmEnabled').checked,
                 snooze_allowed: document.getElementById('snoozeAllowed').checked,
-                snooze_duration: parseInt(document.getElementById('snoozeDuration').value) || 5,
-                sound_file: currentSoundTab === 'custom' && selectedSoundId ? selectedSoundId.toString() : null
+                snooze_duration: parseInt(document.getElementById('snoozeDuration').value),
+                sound_file: null // TODO: Add sound selection logic back
             };
             
-            const alarmId = document.getElementById('alarmId').value;
-            const url = alarmId ? `/api/alarms/${alarmId}` : '/api/alarms';
-            const method = alarmId ? 'PUT' : 'POST';
+            const id = document.getElementById('alarmId').value;
+            const method = id ? 'PUT' : 'POST';
+            const url = id ? `/api/alarms/${id}` : '/api/alarms';
             
             try {
                 const response = await fetch(url, {
                     method: method,
+                    credentials: 'include',
                     headers: {
                         'Content-Type': 'application/json',
                         'X-Requested-With': 'XMLHttpRequest'
                     },
-                    credentials: 'include',  // Wichtig für Cookies/Sessions
                     body: JSON.stringify(alarmData)
                 });
                 
-                // Prüfe Content-Type bevor JSON-Parse
-                const contentType = response.headers.get('content-type');
-                if (!contentType || !contentType.includes('application/json')) {
-                    const text = await response.text();
-                    console.error('Non-JSON response:', text);
-                    if (response.status === 401) {
-                        window.location.href = '/login';
-                        return;
-                    }
-                    showNotification('Fehler: Ungültige Server-Antwort', 'error');
-                    return;
-                }
-                
-                const data = await response.json();
-                
                 if (response.ok) {
                     closeAlarmModal();
-                    await loadAlarms();
-                    showNotification('Alarm erfolgreich gespeichert', 'success');
+                    loadAlarms();
                 } else {
-                    showNotification('Fehler: ' + (data.error || 'Speichern fehlgeschlagen'), 'error');
+                    alert('Fehler beim Speichern');
                 }
             } catch (error) {
                 console.error('Error saving alarm:', error);
-                if (error.name === 'TypeError' && error.message.includes('JSON')) {
-                    showNotification('Fehler: Server-Antwort konnte nicht gelesen werden', 'error');
-                } else {
-                    showNotification('Fehler: ' + error.message, 'error');
-                }
             }
         });
-        
-        async function deleteAlarm(id) {
-            if (!confirm('Alarm wirklich loeschen?')) return;
-            
-            try {
-                const response = await fetch(`/api/alarms/${id}`, {
-                    method: 'DELETE',
-                    credentials: 'include',
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest'
-                    }
-                });
-                
-                if (response.ok) {
-                    await loadAlarms();
-                    showNotification('Alarm erfolgreich gelöscht', 'success');
-                } else {
-                    const contentType = response.headers.get('content-type');
-                    if (contentType && contentType.includes('application/json')) {
-                        const error = await response.json();
-                        showNotification('Fehler: ' + (error.error || 'Löschen fehlgeschlagen'), 'error');
-                    } else {
-                        showNotification('Fehler beim Löschen', 'error');
-                    }
-                }
-            } catch (error) {
-                console.error('Delete error:', error);
-                showNotification('Fehler: ' + error.message, 'error');
-            }
-        }
-        
-        function showNotification(message, type = 'info') {
-            const notification = document.createElement('div');
-            notification.style.cssText = `
-                position: fixed;
-                top: 20px;
-                right: 20px;
-                padding: 15px 20px;
-                background: ${type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : '#667eea'};
-                color: white;
-                border-radius: 10px;
-                box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-                z-index: 10000;
-                animation: slideIn 0.3s ease-out;
-            `;
-            notification.textContent = message;
-            document.body.appendChild(notification);
-            
-            setTimeout(() => {
-                notification.style.animation = 'slideOut 0.3s ease-out';
-                setTimeout(() => notification.remove(), 300);
-            }, 3000);
-        }
-        
-        async function snoozeAlarm(id) {
-            try {
-                const response = await fetch(`/api/alarms/${id}/snooze`, {
-                    method: 'POST',
-                    credentials: 'include',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest'
-                    },
-                    body: JSON.stringify({ minutes: 5 })
-                });
-                
-                if (response.ok) {
-                    await loadAlarms();
-                    showNotification('Alarm gesnoozt für 5 Minuten', 'success');
-                } else {
-                    const contentType = response.headers.get('content-type');
-                    if (contentType && contentType.includes('application/json')) {
-                        const error = await response.json();
-                        showNotification('Fehler: ' + (error.error || 'Snooze fehlgeschlagen'), 'error');
-                    } else {
-                        showNotification('Fehler beim Snooze', 'error');
-                    }
-                }
-            } catch (error) {
-                console.error('Snooze error:', error);
-                showNotification('Fehler: ' + error.message, 'error');
-            }
-        }
-        
-        async function dismissAlarm(id) {
-            try {
-                const response = await fetch(`/api/alarms/${id}/dismiss`, {
-                    method: 'POST',
-                    credentials: 'include',
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest'
-                    }
-                });
-                
-                if (response.ok) {
-                    await loadAlarms();
-                    showNotification('Alarm ausgeschaltet', 'success');
-                } else {
-                    const contentType = response.headers.get('content-type');
-                    if (contentType && contentType.includes('application/json')) {
-                        const error = await response.json();
-                        showNotification('Fehler: ' + (error.error || 'Ausschalten fehlgeschlagen'), 'error');
-                    } else {
-                        showNotification('Fehler beim Ausschalten', 'error');
-                    }
-                }
-            } catch (error) {
-                console.error('Dismiss error:', error);
-                showNotification('Fehler: ' + error.message, 'error');
-            }
-        }
         
         async function logout() {
             try {
-                await fetch('/api/auth/logout', { 
+                await fetch('/api/auth/logout', {
                     method: 'POST',
                     credentials: 'include',
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest'
-                    }
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
                 });
                 window.location.href = '/login';
             } catch (error) {
-                console.error('Logout error:', error);
                 window.location.href = '/login';
             }
         }
         
-        // Close modal on outside click
-        document.getElementById('alarmModal').addEventListener('click', function(e) {
-            if (e.target === this) {
-                closeAlarmModal();
-            }
-        });
-        
-        // Initialize on load
+        function switchSoundTab(tab) {
+            currentSoundTab = tab;
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.getElementById('tab-' + tab).classList.add('active');
+            
+            document.getElementById('defaultSoundTab').style.display = tab === 'default' ? 'block' : 'none';
+            document.getElementById('customSoundTab').style.display = tab === 'custom' ? 'block' : 'none';
+        }
+
+        // Start
         init();
     </script>
 </body>

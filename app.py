@@ -64,13 +64,27 @@ display_update_thread = None
 running = True
 active_alarm = None
 
-# Initialize hardware (with error handling for non-RPi environments)
+# Initialize hardware components independently
 try:
+    print("Initializing Display...")
     display = TM1637Display()
-    hardware = HardwareController(button_callback=handle_button_press)
+    print("Display initialized successfully.")
 except Exception as e:
-    print(f"Warning: Could not initialize hardware: {e}")
-    print("Running in simulation mode (hardware disabled)")
+    print(f"Warning: Could not initialize Display: {e}")
+    display = None
+
+try:
+    print("Initializing Hardware Controller (Button/Sound)...")
+    hardware = HardwareController(button_callback=handle_button_press)
+    print("Hardware Controller initialized successfully.")
+except Exception as e:
+    print(f"Warning: Could not initialize Hardware Controller: {e}")
+    hardware = None
+
+if not display and not hardware:
+    print("Running in simulation mode (NO hardware detected)")
+else:
+    print(f"Hardware status: Display={'OK' if display else 'FAIL'}, Hardware={'OK' if hardware else 'FAIL'}")
 
 
 def handle_button_press():
@@ -141,19 +155,24 @@ def update_display_loop():
                 current_time = datetime.now()
                 
                 if active_alarm:
+                    # Blinkende Anzeige bei Alarm (ganzes Display an/aus)
+                    if int(time.time() * 2) % 2 == 0:
+                        display.show_time(
+                            current_time.hour,
+                            current_time.minute,
+                            colon=True
+                        )
+                    else:
+                        display.clear()
+                else:
+                    # Normal: Uhrzeit mit blinkendem Doppelpunkt
                     display.show_time(
                         current_time.hour,
                         current_time.minute,
                         colon=(int(time.time()) % 2 == 0)
                     )
-                else:
-                    display.show_time(
-                        current_time.hour,
-                        current_time.minute,
-                        colon=True
-                    )
             
-            time.sleep(1)
+            time.sleep(0.5 if active_alarm else 1)  # Schnelleres Update bei Alarm
         except Exception as e:
             print(f"Error in display update loop: {e}")
             time.sleep(5)
