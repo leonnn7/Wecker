@@ -677,7 +677,15 @@ sudo systemctl stop wecker.service
 # 2. Service-Datei bearbeiten
 sudo nano /etc/systemd/system/wecker.service
 
-# 3. Pfade anpassen (User, WorkingDirectory, ExecStart, Environment)
+# 3. Prüfe ALLE Pfade - sie müssen konsistent sein!
+#    Beispiel für Benutzer "admin":
+#    User=admin
+#    WorkingDirectory=/home/admin/Wecker
+#    ExecStart=/home/admin/Wecker/venv/bin/python3 /home/admin/Wecker/app.py
+#    Environment="PATH=/home/admin/Wecker/venv/bin"
+#
+#    WICHTIG: Alle Pfade müssen den gleichen Benutzer haben!
+#    NICHT mischen: /home/admin/... und /home/pi/...
 
 # 4. Service neu laden
 sudo systemctl daemon-reload
@@ -687,6 +695,9 @@ sudo systemctl start wecker.service
 
 # 6. Status prüfen
 sudo systemctl status wecker.service
+
+# 7. Falls Fehler: Logs prüfen
+sudo journalctl -u wecker.service -n 50
 ```
 
 ---
