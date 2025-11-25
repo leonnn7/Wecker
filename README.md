@@ -6,6 +6,7 @@ Ein vollstaendiges Wecker-System mit Web-Interface und REST API fuer die Fernste
 
 - **[INSTALLATION.md](INSTALLATION.md)** - Komplette Installationsanleitung mit allen Commands
 - **[PIN_DIAGRAM.txt](PIN_DIAGRAM.txt)** - Detaillierte Pin-Belegung und Schaltplan
+- **[QUICK_START_PINS.md](QUICK_START_PINS.md)** - Schnellstart: Einfache Pin-Verbindungen
 
 ## Hardware-Komponenten
 
