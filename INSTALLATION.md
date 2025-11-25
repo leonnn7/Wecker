@@ -1,0 +1,585 @@
+# Raspberry Pi Wecker - Komplette Installationsanleitung
+
+## Inhaltsverzeichnis
+1. [Hardware-Vorbereitung](#hardware-vorbereitung)
+2. [Raspberry Pi Setup](#raspberry-pi-setup)
+3. [Software-Installation](#software-installation)
+4. [Pin-Verbindungen](#pin-verbindungen)
+5. [Konfiguration](#konfiguration)
+6. [Erste Schritte](#erste-schritte)
+7. [Fehlerbehebung](#fehlerbehebung)
+
+---
+
+## Hardware-Vorbereitung
+
+### Benötigte Hardware:
+- Raspberry Pi (3B+, 4B oder neuer empfohlen)
+- MicroSD-Karte (mindestens 16GB, Class 10)
+- Netzteil für Raspberry Pi (5V, mindestens 2.5A)
+- **TM1637 4-Bit 7-Segment Display** (0.36" rot)
+- **Button/Schalter** (momentaner Taster)
+- **Lautsprecher** (passive Lautsprecher mit Kabeln)
+- Jumper-Kabel (mindestens 6 Stück)
+- Optional: Breadboard für einfachere Verbindungen
+
+---
+
+## Raspberry Pi Setup
+
+### 1. Raspberry Pi OS installieren
+
+#### Option A: Raspberry Pi Imager (Empfohlen)
+1. Lade den **Raspberry Pi Imager** herunter: https://www.raspberrypi.com/software/
+2. Installiere und öffne den Imager
+3. Wähle "Raspberry Pi OS (64-bit)" oder "Raspberry Pi OS (32-bit)"
+4. Klicke auf das Zahnrad-Symbol für erweiterte Optionen:
+   - Aktiviere SSH
+   - Setze Benutzername und Passwort
+   - Konfiguriere WLAN (optional)
+5. Schreibe das Image auf die SD-Karte
+
+#### Option B: Manuelle Installation
+```bash
+# Auf einem Linux/Mac System:
+# 1. Image herunterladen von https://www.raspberrypi.com/software/operating-systems/
+# 2. Image auf SD-Karte schreiben:
+sudo dd if=raspios-image.img of=/dev/sdX bs=4M status=progress
+# Ersetze /dev/sdX mit deinem SD-Karten-Gerät
+```
+
+### 2. Erste Inbetriebnahme
+
+#### Mit Monitor und Tastatur:
+1. Stecke die SD-Karte in den Raspberry Pi
+2. Verbinde Monitor, Tastatur, Maus
+3. Schalte den Raspberry Pi ein
+4. Folge dem Setup-Assistenten
+
+#### Headless (ohne Monitor):
+1. Erstelle nach dem Schreiben eine leere Datei namens `ssh` im Boot-Verzeichnis der SD-Karte
+2. Falls WLAN konfiguriert: Raspberry Pi einschalten und warten
+3. Finde die IP-Adresse:
+   ```bash
+   # Auf deinem Computer:
+   ping raspberrypi.local
+   # Oder im Router nachsehen
+   ```
+4. Verbinde per SSH:
+   ```bash
+   ssh pi@<raspberry-pi-ip>
+   # Oder mit deinem konfigurierten Benutzernamen:
+   ssh <benutzername>@<raspberry-pi-ip>
+   ```
+
+### 3. System aktualisieren
+
+```bash
+# System aktualisieren
+sudo apt update
+sudo apt upgrade -y
+
+# System neu starten (falls Kernel-Updates installiert wurden)
+sudo reboot
+```
+
+---
+
+## Software-Installation
+
+### 1. Python und pip installieren
+
+```bash
+# Python 3 sollte bereits installiert sein, aber sicherstellen:
+python3 --version
+
+# pip installieren/aktualisieren
+sudo apt install python3-pip -y
+
+# pip aktualisieren
+python3 -m pip install --upgrade pip
+```
+
+### 2. System-Pakete installieren
+
+```bash
+# GPIO-Bibliothek und Audio-Tools
+sudo apt install -y \
+    python3-dev \
+    python3-rpi.gpio \
+    python3-pygame \
+    python3-numpy \
+    alsa-utils \
+    portaudio19-dev \
+    python3-pyaudio
+
+# Git für Code-Download (falls nicht installiert)
+sudo apt install git -y
+```
+
+### 3. Projekt-Dateien übertragen
+
+#### Option A: Via Git (wenn Repository vorhanden)
+```bash
+cd ~
+git clone <dein-repository-url>
+cd Wecker
+```
+
+#### Option B: Via SCP (vom Computer)
+```bash
+# Auf deinem Computer:
+scp -r Wecker/ pi@<raspberry-pi-ip>:~/
+```
+
+#### Option C: Via USB-Stick
+1. Kopiere den Wecker-Ordner auf einen USB-Stick
+2. Stecke den USB-Stick in den Raspberry Pi
+3. Kopiere die Dateien:
+   ```bash
+   mkdir -p ~/Wecker
+   cp /media/usb/Wecker/* ~/Wecker/
+   cd ~/Wecker
+   ```
+
+### 4. Python-Abhängigkeiten installieren
+
+```bash
+cd ~/Wecker
+
+# Virtuelle Umgebung erstellen (empfohlen)
+python3 -m venv venv
+
+# Virtuelle Umgebung aktivieren
+source venv/bin/activate
+
+# Abhängigkeiten installieren
+pip install -r requirements.txt
+
+# Falls Fehler bei RPi.GPIO auftreten:
+pip install RPi.GPIO --upgrade
+```
+
+### 5. Verzeichnisse erstellen
+
+```bash
+# Sounds-Verzeichnis erstellen
+mkdir -p sounds
+
+# Berechtigungen setzen
+chmod 755 sounds
+```
+
+---
+
+## Pin-Verbindungen
+
+### Übersicht der GPIO-Pins
+
+```
+       3.3V  [1]  [2]  5V
+     GPIO2  [3]  [4]  5V
+     GPIO3  [5]  [6]  GND
+     GPIO4  [7]  [8]  GPIO14
+       GND  [9]  [10] GPIO15
+    GPIO17 [11]  [12] GPIO18  ← BUTTON
+    GPIO27 [13]  [14] GND
+    GPIO22 [15]  [16] GPIO23  ← TM1637 CLK
+       3.3V [17]  [18] GPIO24  ← TM1637 DIO
+    GPIO10 [19]  [20] GND
+     GPIO9 [21]  [22] GPIO25  ← SOUND (PWM)
+    GPIO11 [23]  [24] GPIO8
+       GND [25]  [26] GPIO7
+```
+
+### Detaillierte Verbindungen
+
+#### TM1637 Display (4-Pin Modul)
+
+```
+TM1637 Modul          Raspberry Pi
+─────────────────────────────────
+VCC (Rot)      →      Pin 1 (3.3V) oder Pin 2 (5V)
+GND (Schwarz)  →      Pin 6 (GND)
+DIO (Gelb)     →      Pin 18 (GPIO 24)
+CLK (Grün)     →      Pin 16 (GPIO 23)
+```
+
+**Wichtig:** 
+- Das Display kann mit 3.3V oder 5V betrieben werden
+- Wenn das Display nicht richtig funktioniert, versuche 5V (Pin 2) statt 3.3V
+
+#### Button/Schalter
+
+```
+Button                Raspberry Pi
+─────────────────────────────────
+Pin 1                 →      Pin 12 (GPIO 18)
+Pin 2                 →      Pin 14 (GND)
+```
+
+**Wichtig:**
+- Der Button wird mit internem Pull-up verwendet
+- Bei gedrücktem Button: GPIO 18 → GND (LOW)
+- Bei losgelassenem Button: GPIO 18 → HIGH (interner Pull-up)
+
+#### Lautsprecher
+
+**Option 1: Direkt über GPIO (PWM) - Einfach, aber leise**
+
+```
+Lautsprecher          Raspberry Pi
+─────────────────────────────────
++ (Rot)               →      Pin 20 (GPIO 25)
+- (Schwarz)           →      Pin 20 (GND) oder Pin 14 (GND)
+```
+
+**Option 2: Über Audio-Jack (Besser für Sound-Qualität)**
+
+```
+Lautsprecher          Raspberry Pi
+─────────────────────────────────
++ (Rot)               →      Audio-Jack (grüner Stecker)
+- (Schwarz)           →      Audio-Jack (Masse)
+```
+
+**Wichtig für Option 1:**
+- Verwende einen kleinen Widerstand (100-220Ω) in Reihe, um den GPIO zu schützen
+- Oder verwende einen Transistor/Verstärker für bessere Qualität
+
+**Empfohlen: Audio-Jack verwenden für bessere Sound-Qualität!**
+
+### Komplette Pin-Belegung Tabelle
+
+| Komponente | Pin Name | GPIO | Physischer Pin | Farbe (falls vorhanden) |
+|------------|----------|------|----------------|-------------------------|
+| TM1637 VCC | 3.3V/5V | - | Pin 1 oder 2 | Rot |
+| TM1637 GND | GND | - | Pin 6 | Schwarz |
+| TM1637 DIO | GPIO 24 | 24 | Pin 18 | Gelb |
+| TM1637 CLK | GPIO 23 | 23 | Pin 16 | Grün |
+| Button Pin 1 | GPIO 18 | 18 | Pin 12 | - |
+| Button Pin 2 | GND | - | Pin 14 | - |
+| Sound (PWM) | GPIO 25 | 25 | Pin 20 | - |
+| Sound GND | GND | - | Pin 20 (GND) | - |
+
+### Visuelle Darstellung (von oben gesehen)
+
+```
+        [Display]          [Button]
+           │                  │
+    VCC ───┘                  │
+    GND ───┘                  │
+    DIO ───┘ (Pin 18)        │
+    CLK ───┘ (Pin 16)        │
+                             │
+                    GPIO 18 ──┘ (Pin 12)
+                    GND ────────┘ (Pin 14)
+
+    [Lautsprecher]
+         │
+    GPIO 25 ───┘ (Pin 20)
+    GND ────────┘ (Pin 20 GND)
+```
+
+---
+
+## Konfiguration
+
+### 1. GPIO-Pins anpassen (falls nötig)
+
+```bash
+nano ~/Wecker/config.py
+```
+
+Bearbeite die Pin-Nummern falls du andere Pins verwendest:
+```python
+TM1637_CLK_PIN = 23  # Clock pin
+TM1637_DIO_PIN = 24  # Data pin
+BUTTON_PIN = 18      # Button pin
+SOUND_PIN = 25       # Sound pin (PWM) oder None für Audio-Jack
+```
+
+### 2. Audio-Konfiguration (für Audio-Jack)
+
+```bash
+# Audio-Ausgang auf Audio-Jack setzen
+sudo raspi-config
+# Navigiere zu: Advanced Options → Audio → Force 3.5mm ('headphone') jack
+
+# Oder per Command:
+sudo amixer cset numid=3 1
+```
+
+### 3. Berechtigungen für GPIO
+
+```bash
+# Benutzer zur gpio-Gruppe hinzufügen (falls nötig)
+sudo usermod -a -G gpio $USER
+
+# Ausloggen und wieder einloggen, damit Änderungen wirksam werden
+```
+
+---
+
+## Erste Schritte
+
+### 1. Server starten
+
+```bash
+cd ~/Wecker
+source venv/bin/activate  # Falls virtuelle Umgebung verwendet wird
+
+# Server starten
+python3 app.py
+```
+
+Du solltest folgende Ausgabe sehen:
+```
+Starting Wecker server on 0.0.0.0:5000
+Web interface: http://localhost:5000/
+Default admin: username='admin', password='admin'
+WARNING: Change default password!
+ * Running on http://0.0.0.0:5000
+```
+
+### 2. Web-Interface öffnen
+
+#### Lokal auf dem Raspberry Pi:
+```bash
+# Öffne Browser und gehe zu:
+http://localhost:5000
+```
+
+#### Von einem anderen Gerät im Netzwerk:
+```bash
+# Finde die IP-Adresse des Raspberry Pi:
+hostname -I
+
+# Öffne im Browser (vom Computer/Handy):
+http://<raspberry-pi-ip>:5000
+# Beispiel: http://192.168.1.100:5000
+```
+
+### 3. Erste Anmeldung
+
+- **Benutzername:** `admin`
+- **Passwort:** `admin`
+- **WICHTIG:** Ändere das Passwort sofort nach dem ersten Login!
+
+### 4. Server im Hintergrund laufen lassen
+
+#### Option A: screen (Einfach)
+```bash
+# Screen installieren
+sudo apt install screen -y
+
+# Screen-Session starten
+screen -S wecker
+
+# Server starten
+cd ~/Wecker
+source venv/bin/activate
+python3 app.py
+
+# Screen verlassen: Strg+A, dann D
+# Screen wieder verbinden:
+screen -r wecker
+```
+
+#### Option B: systemd Service (Professionell)
+
+Erstelle einen Service:
+
+```bash
+sudo nano /etc/systemd/system/wecker.service
+```
+
+Füge folgendes ein (passe Pfade an):
+```ini
+[Unit]
+Description=Raspberry Pi Wecker Service
+After=network.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/Wecker
+Environment="PATH=/home/pi/Wecker/venv/bin"
+ExecStart=/home/pi/Wecker/venv/bin/python3 /home/pi/Wecker/app.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Service aktivieren:
+```bash
+# Service aktivieren
+sudo systemctl enable wecker.service
+
+# Service starten
+sudo systemctl start wecker.service
+
+# Status prüfen
+sudo systemctl status wecker.service
+
+# Logs ansehen
+sudo journalctl -u wecker.service -f
+```
+
+---
+
+## Fehlerbehebung
+
+### Problem: "Permission denied" bei GPIO
+
+**Lösung:**
+```bash
+sudo usermod -a -G gpio $USER
+# Ausloggen und wieder einloggen
+```
+
+### Problem: Display zeigt nichts
+
+**Lösung:**
+1. Prüfe alle Verbindungen
+2. Versuche 5V statt 3.3V für VCC
+3. Prüfe ob Pins richtig verbunden sind:
+   ```bash
+   # Test-Script erstellen:
+   python3 -c "import RPi.GPIO as GPIO; GPIO.setmode(GPIO.BCM); GPIO.setup(23, GPIO.OUT); GPIO.output(23, GPIO.HIGH); print('GPIO 23 OK')"
+   ```
+
+### Problem: Button funktioniert nicht
+
+**Lösung:**
+1. Prüfe Verbindung zwischen Button und GPIO 18 + GND
+2. Teste Button mit Multimeter
+3. Prüfe ob Pull-up aktiviert ist (sollte automatisch sein)
+
+### Problem: Kein Sound
+
+**Lösung:**
+1. **Bei PWM (GPIO 25):**
+   ```bash
+   # Teste PWM:
+   python3 -c "import RPi.GPIO as GPIO; GPIO.setmode(GPIO.BCM); GPIO.setup(25, GPIO.OUT); pwm = GPIO.PWM(25, 1000); pwm.start(50); import time; time.sleep(2); pwm.stop()"
+   ```
+
+2. **Bei Audio-Jack:**
+   ```bash
+   # Audio testen:
+   speaker-test -t sine -f 1000 -l 1
+   
+   # Lautstärke prüfen:
+   alsamixer
+   # Mit Pfeiltasten Lautstärke erhöhen
+   ```
+
+### Problem: "Module not found: RPi.GPIO"
+
+**Lösung:**
+```bash
+sudo apt install python3-rpi.gpio -y
+# Oder:
+pip3 install RPi.GPIO
+```
+
+### Problem: Server startet nicht
+
+**Lösung:**
+```bash
+# Prüfe ob Port 5000 bereits belegt ist:
+sudo netstat -tulpn | grep 5000
+
+# Falls belegt, ändere Port in config.py:
+nano ~/Wecker/config.py
+# Ändere: WEB_PORT = 5000 zu WEB_PORT = 8080
+```
+
+### Problem: Kann nicht von außen zugreifen
+
+**Lösung:**
+1. Prüfe Firewall:
+   ```bash
+   sudo ufw allow 5000
+   ```
+
+2. Prüfe ob Server auf 0.0.0.0 läuft (nicht nur localhost)
+
+3. Für externen Zugang: Port-Forwarding im Router einrichten
+
+### Problem: Datenbank-Fehler
+
+**Lösung:**
+```bash
+# Datenbank neu erstellen:
+cd ~/Wecker
+rm wecker.db
+python3 -c "from database import init_database; init_database()"
+```
+
+---
+
+## Nützliche Commands
+
+### Server stoppen
+```bash
+# Im Terminal: Strg+C
+# Oder wenn als Service:
+sudo systemctl stop wecker.service
+```
+
+### Logs ansehen
+```bash
+# Wenn als Service:
+sudo journalctl -u wecker.service -f
+
+# Oder direkt:
+tail -f ~/Wecker/app.log  # Falls Logging aktiviert
+```
+
+### IP-Adresse herausfinden
+```bash
+hostname -I
+```
+
+### System-Status prüfen
+```bash
+# CPU-Temperatur
+vcgencmd measure_temp
+
+# Speicher
+free -h
+
+# Festplatte
+df -h
+```
+
+---
+
+## Sicherheitshinweise
+
+1. **Passwort ändern:** Ändere das Standard-Admin-Passwort sofort!
+2. **Firewall:** Aktiviere eine Firewall für externen Zugang
+3. **HTTPS:** Für Produktion HTTPS einrichten (z.B. mit nginx + Let's Encrypt)
+4. **Updates:** Regelmäßig System-Updates durchführen:
+   ```bash
+   sudo apt update && sudo apt upgrade -y
+   ```
+
+---
+
+## Support
+
+Bei Problemen:
+1. Prüfe die Fehlerbehebung oben
+2. Prüfe die Logs: `sudo journalctl -u wecker.service -n 50`
+3. Prüfe GPIO-Verbindungen mit Multimeter
+4. Teste Komponenten einzeln
+
+---
+
+**Viel Erfolg mit deinem Raspberry Pi Wecker! 🎉**
+

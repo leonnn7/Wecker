@@ -1,0 +1,1085 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Raspberry Pi Wecker</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --primary: #667eea;
+            --primary-dark: #5568d3;
+            --secondary: #764ba2;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --bg-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --card-shadow: 0 20px 60px rgba(0,0,0,0.15);
+            --card-shadow-hover: 0 25px 70px rgba(0,0,0,0.2);
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: var(--bg-gradient);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+        
+        .navbar {
+            background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 15px 25px;
+            margin-bottom: 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: var(--card-shadow);
+        }
+        
+        .navbar-left {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .navbar-title {
+            font-size: 1.5em;
+            font-weight: 700;
+            background: var(--bg-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #666;
+        }
+        
+        .role-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+        
+        .role-admin {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        
+        .role-user {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+        
+        .role-guest {
+            background: #f3f4f6;
+            color: #4b5563;
+        }
+        
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9em;
+            font-weight: 500;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+        
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+        
+        .btn-warning {
+            background: var(--warning);
+            color: white;
+        }
+        
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+        
+        .btn-secondary {
+            background: #6b7280;
+            color: white;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 25px;
+            margin-bottom: 25px;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: var(--card-shadow);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--card-shadow-hover);
+        }
+        
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f3f4f6;
+        }
+        
+        .card-title {
+            font-size: 1.3em;
+            font-weight: 700;
+            color: #1f2937;
+        }
+        
+        .time-display {
+            font-size: 4em;
+            font-weight: 700;
+            text-align: center;
+            background: var(--bg-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin: 20px 0;
+            font-variant-numeric: tabular-nums;
+        }
+        
+        .date-display {
+            text-align: center;
+            color: #6b7280;
+            font-size: 1.1em;
+            margin-bottom: 20px;
+        }
+        
+        .alarm-item {
+            background: #f9fafb;
+            border-radius: 12px;
+            padding: 18px;
+            margin-bottom: 12px;
+            border-left: 4px solid var(--primary);
+            transition: all 0.3s;
+        }
+        
+        .alarm-item:hover {
+            background: #f3f4f6;
+            transform: translateX(5px);
+        }
+        
+        .alarm-item.active {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            border-left-color: var(--warning);
+            animation: pulse 2s infinite;
+            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.9; }
+        }
+        
+        .alarm-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        
+        .alarm-time {
+            font-size: 1.8em;
+            font-weight: 700;
+            color: #1f2937;
+            font-variant-numeric: tabular-nums;
+        }
+        
+        .alarm-label {
+            color: #4b5563;
+            font-weight: 500;
+            margin-top: 4px;
+        }
+        
+        .alarm-meta {
+            display: flex;
+            gap: 12px;
+            margin-top: 8px;
+            flex-wrap: wrap;
+        }
+        
+        .meta-badge {
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: 500;
+        }
+        
+        .badge-days {
+            background: #e0e7ff;
+            color: #3730a3;
+        }
+        
+        .badge-sound {
+            background: #fce7f3;
+            color: #9f1239;
+        }
+        
+        .badge-snooze {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        
+        .badge-no-snooze {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        
+        .alarm-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        
+        .form-group {
+            margin-bottom: 18px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #374151;
+        }
+        
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+        
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+        
+        .days-selector {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        
+        .day-checkbox {
+            flex: 1;
+            min-width: 60px;
+        }
+        
+        .day-checkbox input[type="checkbox"] {
+            display: none;
+        }
+        
+        .day-checkbox label {
+            display: block;
+            padding: 10px;
+            text-align: center;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+        
+        .day-checkbox input[type="checkbox"]:checked + label {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+        
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 52px;
+            height: 28px;
+        }
+        
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #cbd5e1;
+            transition: .4s;
+            border-radius: 28px;
+        }
+        
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 20px;
+            width: 20px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        input:checked + .slider {
+            background-color: var(--primary);
+        }
+        
+        input:checked + .slider:before {
+            transform: translateX(24px);
+        }
+        
+        .toggle-group {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #9ca3af;
+        }
+        
+        .empty-state-icon {
+            font-size: 4em;
+            margin-bottom: 15px;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(5px);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal.active {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.3);
+            animation: modalSlide 0.3s ease-out;
+        }
+        
+        @keyframes modalSlide {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f3f4f6;
+        }
+        
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 1.5em;
+            cursor: pointer;
+            color: #6b7280;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: all 0.3s;
+        }
+        
+        .close-btn:hover {
+            background: #f3f4f6;
+            color: #1f2937;
+        }
+        
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #f3f4f6;
+        }
+        
+        .tab {
+            padding: 12px 20px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 500;
+            color: #6b7280;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+        }
+        
+        .tab.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .sound-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .sound-item {
+            padding: 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s;
+        }
+        
+        .sound-item:hover {
+            border-color: var(--primary);
+            background: #f9fafb;
+        }
+        
+        .sound-item.selected {
+            border-color: var(--primary);
+            background: #eef2ff;
+        }
+        
+        .file-upload {
+            border: 2px dashed #cbd5e1;
+            border-radius: 10px;
+            padding: 30px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .file-upload:hover {
+            border-color: var(--primary);
+            background: #f9fafb;
+        }
+        
+        .file-upload input {
+            display: none;
+        }
+        
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <div class="navbar-left">
+            <div class="navbar-title">⏰ Wecker</div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 15px;">
+            <div class="user-info">
+                <span id="username"></span>
+                <span class="role-badge" id="roleBadge"></span>
+            </div>
+            <button class="btn btn-secondary" onclick="logout()">Abmelden</button>
+        </div>
+    </div>
+    
+    <div class="container">
+        <div class="grid">
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">Aktuelle Zeit</div>
+                </div>
+                <div class="time-display" id="currentTime">--:--:--</div>
+                <div class="date-display" id="currentDate"></div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">System Status</div>
+                </div>
+                <div id="systemStatus">Lade...</div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">Alarme</div>
+                <button class="btn btn-primary" onclick="openAddAlarmModal()">+ Neuer Alarm</button>
+            </div>
+            <div id="alarmList" class="loading">Lade Alarme...</div>
+        </div>
+    </div>
+    
+    <!-- Add/Edit Alarm Modal -->
+    <div class="modal" id="alarmModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">Neuer Alarm</h2>
+                <button class="close-btn" onclick="closeAlarmModal()">&times;</button>
+            </div>
+            <form id="alarmForm">
+                <input type="hidden" id="alarmId">
+                
+                <div class="form-group">
+                    <label for="alarmTime">Zeit</label>
+                    <input type="time" id="alarmTime" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="alarmLabel">Bezeichnung</label>
+                    <input type="text" id="alarmLabel" placeholder="z.B. Aufstehen">
+                </div>
+                
+                <div class="form-group">
+                    <label>Wiederholung</label>
+                    <div class="days-selector">
+                        <div class="day-checkbox">
+                            <input type="checkbox" id="day0" value="0">
+                            <label for="day0">Mo</label>
+                        </div>
+                        <div class="day-checkbox">
+                            <input type="checkbox" id="day1" value="1">
+                            <label for="day1">Di</label>
+                        </div>
+                        <div class="day-checkbox">
+                            <input type="checkbox" id="day2" value="2">
+                            <label for="day2">Mi</label>
+                        </div>
+                        <div class="day-checkbox">
+                            <input type="checkbox" id="day3" value="3">
+                            <label for="day3">Do</label>
+                        </div>
+                        <div class="day-checkbox">
+                            <input type="checkbox" id="day4" value="4">
+                            <label for="day4">Fr</label>
+                        </div>
+                        <div class="day-checkbox">
+                            <input type="checkbox" id="day5" value="5">
+                            <label for="day5">Sa</label>
+                        </div>
+                        <div class="day-checkbox">
+                            <input type="checkbox" id="day6" value="6">
+                            <label for="day6">So</label>
+                        </div>
+                    </div>
+                    <small style="color: #6b7280; margin-top: 8px; display: block;">
+                        Keine Auswahl = einmaliger Alarm
+                    </small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="alarmSound">Sound</label>
+                    <div class="tabs">
+                        <button type="button" class="tab active" onclick="switchSoundTab('default')">Standard</button>
+                        <button type="button" class="tab" onclick="switchSoundTab('custom')">Custom</button>
+                    </div>
+                    <div class="tab-content active" id="defaultSoundTab">
+                        <select id="defaultSound">
+                            <option value="">Standard Beep</option>
+                        </select>
+                    </div>
+                    <div class="tab-content" id="customSoundTab">
+                        <div id="soundList" class="sound-list"></div>
+                        <div class="file-upload" onclick="document.getElementById('soundUpload').click()">
+                            <input type="file" id="soundUpload" accept="audio/*" onchange="uploadSound()">
+                            <div>📁 Sound hochladen (WAV, MP3, OGG)</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <div class="toggle-group">
+                        <label for="snoozeAllowed">Snooze erlauben</label>
+                        <label class="switch">
+                            <input type="checkbox" id="snoozeAllowed" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="form-group" id="snoozeDurationGroup">
+                    <label for="snoozeDuration">Snooze-Dauer (Minuten)</label>
+                    <input type="number" id="snoozeDuration" min="1" max="60" value="5">
+                </div>
+                
+                <div class="form-group">
+                    <div class="toggle-group">
+                        <label for="alarmEnabled">Aktiviert</label>
+                        <label class="switch">
+                            <input type="checkbox" id="alarmEnabled" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+                
+                <button type="submit" class="btn btn-primary" style="width: 100%; padding: 14px; font-size: 1.1em;">
+                    Alarm speichern
+                </button>
+            </form>
+        </div>
+    </div>
+    
+    <script>
+        let currentUser = null;
+        let activeAlarmId = null;
+        let sounds = [];
+        let selectedSoundId = null;
+        let currentSoundTab = 'default';
+        
+        // Initialize
+        async function init() {
+            await loadUserInfo();
+            await loadAlarms();
+            await loadSounds();
+            updateTime();
+            setInterval(updateTime, 1000);
+            setInterval(loadAlarms, 2000);
+            
+            // Snooze toggle handler
+            document.getElementById('snoozeAllowed').addEventListener('change', function() {
+                document.getElementById('snoozeDurationGroup').style.display = 
+                    this.checked ? 'block' : 'none';
+            });
+        }
+        
+        async function loadUserInfo() {
+            try {
+                const response = await fetch('/api/auth/me');
+                if (response.ok) {
+                    currentUser = await response.json();
+                    document.getElementById('username').textContent = currentUser.username;
+                    const roleBadge = document.getElementById('roleBadge');
+                    roleBadge.textContent = currentUser.role.toUpperCase();
+                    roleBadge.className = 'role-badge role-' + currentUser.role;
+                } else {
+                    window.location.href = '/login';
+                }
+            } catch (error) {
+                console.error('Error loading user info:', error);
+            }
+        }
+        
+        function updateTime() {
+            fetch('/api/time')
+                .then(res => res.json())
+                .then(data => {
+                    document.getElementById('currentTime').textContent = data.time;
+                    document.getElementById('currentDate').textContent = data.date;
+                })
+                .catch(err => console.error('Error fetching time:', err));
+        }
+        
+        async function loadAlarms() {
+            try {
+                const response = await fetch('/api/alarms');
+                const data = await response.json();
+                const alarms = data.alarms || [];
+                activeAlarmId = data.active_alarm ? data.active_alarm.id : null;
+                
+                const alarmList = document.getElementById('alarmList');
+                
+                if (alarms.length === 0) {
+                    alarmList.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-state-icon">⏰</div>
+                            <div>Keine Alarme vorhanden</div>
+                            <div style="margin-top: 10px; color: #9ca3af;">Fuege einen neuen Alarm hinzu</div>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                alarmList.innerHTML = alarms.map(alarm => {
+                    const isActive = activeAlarmId === alarm.id;
+                    const days = alarm.days || [];
+                    const dayNames = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
+                    const dayLabels = days.length > 0 
+                        ? days.map(d => dayNames[d]).join(', ')
+                        : 'Einmalig';
+                    
+                    return `
+                        <div class="alarm-item ${isActive ? 'active' : ''}">
+                            <div>
+                                <div class="alarm-header">
+                                    <div class="alarm-time">${alarm.time}</div>
+                                    ${!alarm.enabled ? '<span style="color: #ef4444; font-size: 0.9em;">Deaktiviert</span>' : ''}
+                                </div>
+                                ${alarm.label ? `<div class="alarm-label">${alarm.label}</div>` : ''}
+                                <div class="alarm-meta">
+                                    <span class="meta-badge badge-days">${dayLabels}</span>
+                                    ${alarm.sound_file ? '<span class="meta-badge badge-sound">🎵 Custom Sound</span>' : ''}
+                                    ${alarm.snooze_allowed ? 
+                                        `<span class="meta-badge badge-snooze">Snooze: ${alarm.snooze_duration}min</span>` :
+                                        '<span class="meta-badge badge-no-snooze">Kein Snooze</span>'
+                                    }
+                                </div>
+                            </div>
+                            <div class="alarm-actions">
+                                ${isActive ? `
+                                    ${alarm.snooze_allowed ? 
+                                        `<button class="btn btn-warning" onclick="snoozeAlarm(${alarm.id})">Snooze</button>` : ''
+                                    }
+                                    <button class="btn btn-success" onclick="dismissAlarm(${alarm.id})">Ausschalten</button>
+                                ` : ''}
+                                <button class="btn btn-primary" onclick="editAlarm(${alarm.id})">Bearbeiten</button>
+                                <button class="btn btn-danger" onclick="deleteAlarm(${alarm.id})">Löschen</button>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+                
+                alarmList.classList.remove('loading');
+            } catch (error) {
+                console.error('Error loading alarms:', error);
+            }
+        }
+        
+        async function loadSounds() {
+            try {
+                const response = await fetch('/api/sounds');
+                const data = await response.json();
+                sounds = data.sounds || [];
+                
+                const soundList = document.getElementById('soundList');
+                if (sounds.length === 0) {
+                    soundList.innerHTML = '<div class="empty-state" style="padding: 20px;">Keine Sounds vorhanden</div>';
+                } else {
+                    soundList.innerHTML = sounds.map(sound => `
+                        <div class="sound-item" onclick="selectSound(${sound.id})" id="sound-${sound.id}">
+                            <span>🎵 ${sound.original_filename}</span>
+                            <button class="btn btn-danger" style="padding: 4px 8px; font-size: 0.8em;" 
+                                    onclick="event.stopPropagation(); deleteSound(${sound.id})">Löschen</button>
+                        </div>
+                    `).join('');
+                }
+            } catch (error) {
+                console.error('Error loading sounds:', error);
+            }
+        }
+        
+        function switchSoundTab(tab) {
+            currentSoundTab = tab;
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            
+            if (tab === 'default') {
+                document.querySelector('.tab').classList.add('active');
+                document.getElementById('defaultSoundTab').classList.add('active');
+                selectedSoundId = null;
+            } else {
+                document.querySelectorAll('.tab')[1].classList.add('active');
+                document.getElementById('customSoundTab').classList.add('active');
+            }
+        }
+        
+        function selectSound(soundId) {
+            selectedSoundId = soundId;
+            document.querySelectorAll('.sound-item').forEach(item => {
+                item.classList.remove('selected');
+            });
+            document.getElementById(`sound-${soundId}`).classList.add('selected');
+        }
+        
+        async function uploadSound() {
+            const fileInput = document.getElementById('soundUpload');
+            const file = fileInput.files[0];
+            
+            if (!file) return;
+            
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            try {
+                const response = await fetch('/api/sounds', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (response.ok) {
+                    await loadSounds();
+                    fileInput.value = '';
+                } else {
+                    const error = await response.json();
+                    alert('Fehler: ' + (error.error || 'Upload fehlgeschlagen'));
+                }
+            } catch (error) {
+                alert('Fehler beim Upload: ' + error.message);
+            }
+        }
+        
+        async function deleteSound(soundId) {
+            if (!confirm('Sound wirklich loeschen?')) return;
+            
+            try {
+                const response = await fetch(`/api/sounds/${soundId}`, {
+                    method: 'DELETE'
+                });
+                
+                if (response.ok) {
+                    await loadSounds();
+                } else {
+                    alert('Fehler beim Loeschen');
+                }
+            } catch (error) {
+                alert('Fehler: ' + error.message);
+            }
+        }
+        
+        function openAddAlarmModal() {
+            document.getElementById('modalTitle').textContent = 'Neuer Alarm';
+            document.getElementById('alarmForm').reset();
+            document.getElementById('alarmId').value = '';
+            document.getElementById('alarmEnabled').checked = true;
+            document.getElementById('snoozeAllowed').checked = true;
+            document.getElementById('snoozeDuration').value = 5;
+            selectedSoundId = null;
+            switchSoundTab('default');
+            document.getElementById('alarmModal').classList.add('active');
+        }
+        
+        async function editAlarm(id) {
+            try {
+                const response = await fetch('/api/alarms');
+                const data = await response.json();
+                const alarm = data.alarms.find(a => a.id === id);
+                
+                if (!alarm) return;
+                
+                document.getElementById('modalTitle').textContent = 'Alarm bearbeiten';
+                document.getElementById('alarmId').value = alarm.id;
+                document.getElementById('alarmTime').value = alarm.time;
+                document.getElementById('alarmLabel').value = alarm.label || '';
+                document.getElementById('alarmEnabled').checked = alarm.enabled;
+                document.getElementById('snoozeAllowed').checked = alarm.snooze_allowed;
+                document.getElementById('snoozeDuration').value = alarm.snooze_duration || 5;
+                
+                // Set days
+                for (let i = 0; i < 7; i++) {
+                    document.getElementById(`day${i}`).checked = alarm.days && alarm.days.includes(i);
+                }
+                
+                // Set sound
+                if (alarm.sound_file) {
+                    selectedSoundId = alarm.sound_file;
+                    switchSoundTab('custom');
+                    setTimeout(() => {
+                        if (document.getElementById(`sound-${selectedSoundId}`)) {
+                            selectSound(selectedSoundId);
+                        }
+                    }, 100);
+                } else {
+                    switchSoundTab('default');
+                }
+                
+                document.getElementById('alarmModal').classList.add('active');
+            } catch (error) {
+                alert('Fehler beim Laden des Alarms');
+            }
+        }
+        
+        function closeAlarmModal() {
+            document.getElementById('alarmModal').classList.remove('active');
+        }
+        
+        document.getElementById('alarmForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const days = [];
+            for (let i = 0; i < 7; i++) {
+                if (document.getElementById(`day${i}`).checked) {
+                    days.push(i);
+                }
+            }
+            
+            const alarmData = {
+                time: document.getElementById('alarmTime').value,
+                label: document.getElementById('alarmLabel').value,
+                days: days.length > 0 ? days : null,
+                enabled: document.getElementById('alarmEnabled').checked,
+                snooze_allowed: document.getElementById('snoozeAllowed').checked,
+                snooze_duration: parseInt(document.getElementById('snoozeDuration').value) || 5,
+                sound_file: currentSoundTab === 'custom' && selectedSoundId ? selectedSoundId.toString() : null
+            };
+            
+            const alarmId = document.getElementById('alarmId').value;
+            const url = alarmId ? `/api/alarms/${alarmId}` : '/api/alarms';
+            const method = alarmId ? 'PUT' : 'POST';
+            
+            try {
+                const response = await fetch(url, {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(alarmData)
+                });
+                
+                if (response.ok) {
+                    closeAlarmModal();
+                    await loadAlarms();
+                } else {
+                    const error = await response.json();
+                    alert('Fehler: ' + (error.error || 'Speichern fehlgeschlagen'));
+                }
+            } catch (error) {
+                alert('Fehler: ' + error.message);
+            }
+        });
+        
+        async function deleteAlarm(id) {
+            if (!confirm('Alarm wirklich loeschen?')) return;
+            
+            try {
+                const response = await fetch(`/api/alarms/${id}`, {
+                    method: 'DELETE'
+                });
+                
+                if (response.ok) {
+                    await loadAlarms();
+                } else {
+                    alert('Fehler beim Loeschen');
+                }
+            } catch (error) {
+                alert('Fehler: ' + error.message);
+            }
+        }
+        
+        async function snoozeAlarm(id) {
+            try {
+                const response = await fetch(`/api/alarms/${id}/snooze`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ minutes: 5 })
+                });
+                
+                if (response.ok) {
+                    await loadAlarms();
+                } else {
+                    const error = await response.json();
+                    alert('Fehler: ' + (error.error || 'Snooze fehlgeschlagen'));
+                }
+            } catch (error) {
+                alert('Fehler: ' + error.message);
+            }
+        }
+        
+        async function dismissAlarm(id) {
+            try {
+                const response = await fetch(`/api/alarms/${id}/dismiss`, {
+                    method: 'POST'
+                });
+                
+                if (response.ok) {
+                    await loadAlarms();
+                } else {
+                    alert('Fehler beim Ausschalten');
+                }
+            } catch (error) {
+                alert('Fehler: ' + error.message);
+            }
+        }
+        
+        async function logout() {
+            try {
+                await fetch('/api/auth/logout', { method: 'POST' });
+                window.location.href = '/login';
+            } catch (error) {
+                window.location.href = '/login';
+            }
+        }
+        
+        // Close modal on outside click
+        document.getElementById('alarmModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeAlarmModal();
+            }
+        });
+        
+        // Initialize on load
+        init();
+    </script>
+</body>
+</html>
