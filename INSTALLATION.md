@@ -800,15 +800,43 @@ nano ~/Wecker/config.py
    # Sollte zeigen: 0.0.0.0:5000
    ```
 
-4. Für externen Zugang:
-   - Port-Forwarding im Router einrichten (siehe oben)
-   - Oder ngrok verwenden: `ngrok http 5000`
-   - Oder Cloudflare Tunnel einrichten
+4. Für externen Zugang (von überall):
+
+   **Empfehlung: Cloudflare Tunnel (Kostenlos & Sicher)**
+   
+   Dies ist die beste Methode, um deinen Wecker sicher ins Internet zu bringen, ohne Ports am Router zu öffnen.
+   
+   1. Erstelle einen Account bei [Cloudflare](https://www.cloudflare.com/)
+   2. Installiere `cloudflared` auf dem Raspberry Pi:
+      ```bash
+      # Add Cloudflare GPG key
+      sudo mkdir -p --mode=0755 /usr/share/keyrings
+      curl -fsSL https://pkg.cloudflare.com/cloudflare-main.gpg | sudo tee /usr/share/keyrings/cloudflare-main.gpg >/dev/null
+      
+      # Add repo
+      echo 'deb [signed-by=/usr/share/keyrings/cloudflare-main.gpg] https://pkg.cloudflare.com/cloudflared bookworm main' | sudo tee /etc/apt/sources.list.d/cloudflared.list
+      
+      # Install
+      sudo apt-get update && sudo apt-get install cloudflared
+      ```
+   3. Starte den Tunnel (Quick Setup ohne Domain):
+      ```bash
+      cloudflared tunnel --url http://localhost:5000
+      ```
+      -> Kopiere die URL, die angezeigt wird (z.B. `https://random-name.trycloudflare.com`).
+      
+   **Alternative: Port-Forwarding (Nur für Fortgeschrittene)**
+   - Port 5000 im Router an die IP des Raspberry Pi weiterleiten.
+   - Achtung: Unsicher ohne HTTPS!
+   
+   **Alternative: ngrok (Schnelltest)**
+   ```bash
+   # ngrok installieren und starten
+   ngrok http 5000
+   ```
 
 5. Prüfe Router-Einstellungen:
-   - Port-Forwarding aktiviert?
-   - Externe IP-Adresse korrekt?
-   - Firewall im Router erlaubt Port 5000?
+   - Falls Port-Forwarding genutzt wird: Ist Port 5000 offen?
 
 ### Problem: Datenbank-Fehler
 
