@@ -78,23 +78,42 @@ class DBAlarmManager:
     def add_alarm(self, user_id, time_str, days=None, enabled=True, label="", 
                   sound_file=None, snooze_allowed=True, snooze_duration=5):
         """Add a new alarm"""
-        conn = get_db()
-        cursor = conn.cursor()
-        
-        days_json = json.dumps(days) if days else None
-        
-        cursor.execute('''
-            INSERT INTO alarms (user_id, time, days, enabled, label, sound_file, 
-                              snooze_allowed, snooze_duration)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (user_id, time_str, days_json, enabled, label, sound_file, 
-              snooze_allowed, snooze_duration))
-        
-        alarm_id = cursor.lastrowid
-        conn.commit()
-        conn.close()
-        
-        return self.get_alarm(alarm_id)
+        try:
+            conn = get_db()
+            cursor = conn.cursor()
+            
+            # Konvertiere days zu JSON-String
+            if days is None:
+                days_json = None
+            elif isinstance(days, list):
+                days_json = json.dumps(days) if days else None
+            else:
+                # Falls days kein List ist, versuche es zu konvertieren
+                days_json = json.dumps(list(days)) if days else None
+            
+            # Debug-Logging
+            print(f"DB: Adding alarm - user_id={user_id}, time={time_str}, days_json={days_json}")
+            
+            cursor.execute('''
+                INSERT INTO alarms (user_id, time, days, enabled, label, sound_file, 
+                                  snooze_allowed, snooze_duration)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (user_id, time_str, days_json, enabled, label, sound_file, 
+                  snooze_allowed, snooze_duration))
+            
+            alarm_id = cursor.lastrowid
+            conn.commit()
+            conn.close()
+            
+            result = self.get_alarm(alarm_id)
+            if not result:
+                print(f"Error: Alarm {alarm_id} was created but could not be retrieved")
+            return result
+        except Exception as e:
+            print(f"Error in add_alarm: {e}")
+            import traceback
+            traceback.print_exc()
+            raise
     
     def get_alarm(self, alarm_id):
         """Get alarm by ID"""

@@ -382,17 +382,34 @@ def create_alarm():
     if days is not None and not isinstance(days, list):
         days = []
     
+    # Leere Liste zu None konvertieren (für bessere DB-Speicherung)
+    if days == []:
+        days = None
+    
     try:
+        # Debug-Logging
+        print(f"Creating alarm: user_id={user.get('id')}, time={time_str}, days={days}, enabled={enabled}")
+        
         alarm = alarm_manager.add_alarm(
             user['id'], time_str, days, enabled, label,
             sound_file, snooze_allowed, snooze_duration
         )
+        
+        if not alarm:
+            print("Error: add_alarm returned None")
+            return jsonify({'error': 'Failed to create alarm - returned None'}), 500
+        
         return jsonify(alarm.to_dict()), 201
     except ValueError as e:
+        print(f"ValueError creating alarm: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': str(e)}), 400
     except Exception as e:
         print(f"Error creating alarm: {e}")
-        return jsonify({'error': 'Failed to create alarm'}), 500
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': f'Failed to create alarm: {str(e)}'}), 500
 
 
 @app.route('/api/alarms/<int:alarm_id>', methods=['PUT'])

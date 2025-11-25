@@ -812,14 +812,21 @@
         }
         
         function updateTime() {
+            // Timeout-Controller für ältere Browser
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 5000);
+            
             fetch('/api/time', {
                 credentials: 'include',
                 headers: {
                     'X-Requested-With': 'XMLHttpRequest'
-                }
+                },
+                signal: controller.signal
             })
                 .then(res => {
-                    if (!res.ok) throw new Error('Time fetch failed');
+                    if (!res.ok) {
+                        throw new Error(`Time fetch failed: ${res.status} ${res.statusText}`);
+                    }
                     const contentType = res.headers.get('content-type');
                     if (contentType && contentType.includes('application/json')) {
                         return res.json();
@@ -827,17 +834,28 @@
                     throw new Error('Invalid response format');
                 })
                 .then(data => {
-                    document.getElementById('currentTime').textContent = data.time;
-                    document.getElementById('currentDate').textContent = data.date;
+                    clearTimeout(timeoutId);  // Timeout löschen bei Erfolg
+                    if (data && data.time && data.date) {
+                        document.getElementById('currentTime').textContent = data.time;
+                        document.getElementById('currentDate').textContent = data.date;
+                    }
                 })
                 .catch(err => {
-                    console.error('Error fetching time:', err);
+                    clearTimeout(timeoutId);  // Timeout löschen bei Fehler
+                    // Nur loggen wenn es nicht ein AbortError ist (Timeout)
+                    if (err.name !== 'AbortError' && err.name !== 'TypeError') {
+                        console.error('Error fetching time:', err);
+                    }
                     // Fallback: Lokale Zeit anzeigen
-                    const now = new Date();
-                    document.getElementById('currentTime').textContent = 
-                        now.toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit', second: '2-digit'});
-                    document.getElementById('currentDate').textContent = 
-                        now.toLocaleDateString('de-DE');
+                    try {
+                        const now = new Date();
+                        document.getElementById('currentTime').textContent = 
+                            now.toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit', second: '2-digit'});
+                        document.getElementById('currentDate').textContent = 
+                            now.toLocaleDateString('de-DE');
+                    } catch (fallbackError) {
+                        // Ignoriere Fallback-Fehler
+                    }
                 });
         }
         

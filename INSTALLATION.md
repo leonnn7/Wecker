@@ -4,6 +4,27 @@
 
 ## ⚡ Schnellstart - Wichtige Commands
 
+### Status prüfen - Läuft der Wecker?
+```bash
+# Option 1: Wenn als systemd Service installiert:
+sudo systemctl status wecker
+
+# Option 2: Prozess prüfen (funktioniert immer):
+ps aux | grep app.py | grep -v grep
+
+# Option 3: Port prüfen (Port 5000):
+sudo netstat -tlnp | grep 5000
+# Oder mit ss (moderner):
+sudo ss -tlnp | grep 5000
+
+# Option 4: Kurz-Check ob Port offen ist:
+curl -s http://localhost:5000/api/time > /dev/null && echo "Wecker läuft!" || echo "Wecker läuft nicht!"
+
+# Option 5: Logs anzeigen (wenn als Service):
+sudo journalctl -u wecker -f  # Live-Logs
+sudo journalctl -u wecker -n 50  # Letzte 50 Zeilen
+```
+
 ### Server neu starten
 ```bash
 # Wenn als systemd Service installiert:
@@ -591,13 +612,25 @@ screen -r wecker
 
 #### Option B: systemd Service (Professionell)
 
-Erstelle einen Service:
+**WICHTIG:** Passe die Pfade an deinen Benutzer an!
 
+1. Finde deinen Benutzernamen und den richtigen Pfad:
+```bash
+# Benutzername herausfinden:
+whoami
+
+# Aktuelles Verzeichnis prüfen:
+pwd
+
+# Beispiel-Ausgabe: /home/admin/Wecker
+```
+
+2. Erstelle den Service:
 ```bash
 sudo nano /etc/systemd/system/wecker.service
 ```
 
-Füge folgendes ein (passe Pfade an):
+3. Füge folgendes ein (ersetze `admin` mit deinem Benutzernamen!):
 ```ini
 [Unit]
 Description=Raspberry Pi Wecker Service
@@ -605,10 +638,10 @@ After=network.target
 
 [Service]
 Type=simple
-User=pi
-WorkingDirectory=/home/pi/Wecker
-Environment="PATH=/home/pi/Wecker/venv/bin"
-ExecStart=/home/pi/Wecker/venv/bin/python3 /home/pi/Wecker/app.py
+User=admin
+WorkingDirectory=/home/admin/Wecker
+Environment="PATH=/home/admin/Wecker/venv/bin"
+ExecStart=/home/admin/Wecker/venv/bin/python3 /home/admin/Wecker/app.py
 Restart=always
 RestartSec=10
 
@@ -616,8 +649,13 @@ RestartSec=10
 WantedBy=multi-user.target
 ```
 
-Service aktivieren:
+**WICHTIG:** Ersetze `admin` mit deinem tatsächlichen Benutzernamen (z.B. `pi`, `admin`, etc.)!
+
+4. Service aktivieren:
 ```bash
+# Service-Datei neu laden
+sudo systemctl daemon-reload
+
 # Service aktivieren
 sudo systemctl enable wecker.service
 
@@ -629,6 +667,26 @@ sudo systemctl status wecker.service
 
 # Logs ansehen
 sudo journalctl -u wecker.service -f
+```
+
+**Service korrigieren (falls Pfad falsch):**
+```bash
+# 1. Service stoppen
+sudo systemctl stop wecker.service
+
+# 2. Service-Datei bearbeiten
+sudo nano /etc/systemd/system/wecker.service
+
+# 3. Pfade anpassen (User, WorkingDirectory, ExecStart, Environment)
+
+# 4. Service neu laden
+sudo systemctl daemon-reload
+
+# 5. Service starten
+sudo systemctl start wecker.service
+
+# 6. Status prüfen
+sudo systemctl status wecker.service
 ```
 
 ---
