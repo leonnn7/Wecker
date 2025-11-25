@@ -725,10 +725,17 @@ def test_sound():
     """Test the sound output"""
     try:
         if not hardware:
-            return jsonify({'error': 'Hardware nicht verfügbar'}), 400
+            return jsonify({
+                'error': 'Hardware-Controller nicht initialisiert. Prüfe Server-Logs für Details.',
+                'details': 'Variable "hardware" ist None. Wahrscheinlich Fehler beim Starten.'
+            }), 400
         
         # Test: Spiele 2 Sekunden Sound
-        hardware.start_alarm_sound()
+        try:
+            hardware.start_alarm_sound()
+        except Exception as e:
+            return jsonify({'error': f'Fehler beim Starten des Sounds: {str(e)}'}), 500
+            
         import threading
         def stop_sound():
             time.sleep(2)

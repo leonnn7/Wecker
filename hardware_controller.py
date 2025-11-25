@@ -20,21 +20,26 @@ class HardwareController:
         self.sound_playing = False
         self.sound_thread = None
         self.alarm_active = False
+        self.simulation_mode = False
         
-        GPIO.setmode(GPIO.BCM)
-        # Button-Modul hat High Level Output (HIGH wenn gedrückt)
-        # Kein Pull-up nötig, da Modul bereits Logik hat
-        GPIO.setup(BUTTON_PIN, GPIO.IN)
-        
-        # Setup button interrupt - RISING weil Modul HIGH ausgibt wenn gedrückt
-        GPIO.add_event_detect(BUTTON_PIN, GPIO.RISING, 
-                             callback=self._button_pressed, 
-                             bouncetime=300)
-        
-        # Setup sound pin (PWM)
-        GPIO.setup(SOUND_PIN, GPIO.OUT)
-        self.pwm = GPIO.PWM(SOUND_PIN, 1000)  # 1kHz frequency
-        self.pwm.start(0)  # Start with 0% duty cycle (silent)
+        try:
+            GPIO.setmode(GPIO.BCM)
+            # Button-Modul hat High Level Output (HIGH wenn gedrückt)
+            # Kein Pull-up nötig, da Modul bereits Logik hat
+            GPIO.setup(BUTTON_PIN, GPIO.IN)
+            
+            # Setup button interrupt - RISING weil Modul HIGH ausgibt wenn gedrückt
+            GPIO.add_event_detect(BUTTON_PIN, GPIO.RISING, 
+                                 callback=self._button_pressed, 
+                                 bouncetime=300)
+            
+            # Setup sound pin (PWM)
+            GPIO.setup(SOUND_PIN, GPIO.OUT)
+            self.pwm = GPIO.PWM(SOUND_PIN, 1000)  # 1kHz frequency
+            self.pwm.start(0)  # Start with 0% duty cycle (silent)
+        except Exception as e:
+            print(f"Hardware-Init-Fehler: {e} - Starte im Simulationsmodus")
+            self.simulation_mode = True
         
         # Try to initialize pygame for better sound
         if PYGAME_AVAILABLE:
@@ -106,6 +111,9 @@ class HardwareController:
     
     def _play_pwm_sound(self, frequency, duration):
         """Play sound using PWM"""
+        if self.simulation_mode:
+            return
+
         self.pwm.ChangeFrequency(frequency)
         self.pwm.ChangeDutyCycle(50)  # 50% duty cycle
         
@@ -146,7 +154,12 @@ class HardwareController:
         """Stop playing alarm sound"""
         self.alarm_active = False
         self.sound_playing = False
-        self.pwm.ChangeDutyCycle(0)  # Stop PWM
+        
+        if not self.simulation_mode:
+            try:
+                self.pwm.ChangeDutyCycle(0)  # Stop PWM
+            except:
+                pass
         
         if PYGAME_AVAILABLE:
             try:
@@ -157,9 +170,14 @@ class HardwareController:
     def cleanup(self):
         """Cleanup GPIO pins"""
         self.stop_sound()
-        GPIO.remove_event_detect(BUTTON_PIN)
-        self.pwm.stop()
-        GPIO.cleanup([BUTTON_PIN, SOUND_PIN])
+        if not self.simulation_mode:
+            try:
+                GPIO.remove_event_detect(BUTTON_PIN)
+                self.pwm.stop()
+                GPIO.cleanup([BUTTON_PIN, SOUND_PIN])
+            except:
+                pass
+        
         if PYGAME_AVAILABLE:
             try:
                 pygame.mixer.quit()

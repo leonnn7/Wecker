@@ -937,20 +937,28 @@
                 })
                 .then(data => {
                     clearTimeout(timeoutId);
-                    if (data && data.time) {
-                        document.getElementById('currentTime').textContent = data.time;
-                        document.getElementById('currentDate').textContent = data.date;
+                    const timeEl = document.getElementById('currentTime');
+                    const dateEl = document.getElementById('currentDate');
+                    
+                    if (data && data.time && timeEl && dateEl) {
+                        timeEl.textContent = data.time;
+                        dateEl.textContent = data.date;
                     }
                 })
                 .catch(err => {
                     clearTimeout(timeoutId);
                     if (err.name !== 'AbortError') {
                         // Fallback
-                        const now = new Date();
-                        document.getElementById('currentTime').textContent = 
-                            now.toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit', second: '2-digit'});
-                        document.getElementById('currentDate').textContent = 
-                            now.toLocaleDateString('de-DE');
+                        try {
+                            const now = new Date();
+                            const timeEl = document.getElementById('currentTime');
+                            const dateEl = document.getElementById('currentDate');
+                            
+                            if (timeEl && dateEl) {
+                                timeEl.textContent = now.toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit', second: '2-digit'});
+                                dateEl.textContent = now.toLocaleDateString('de-DE');
+                            }
+                        } catch (e) { console.error(e); }
                     }
                 });
         }

@@ -4,162 +4,225 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - Raspberry Pi Wecker</title>
+    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --bg-dark: #0a0a12;
+            --bg-card: rgba(30, 30, 40, 0.4);
+            --bg-card-hover: rgba(40, 40, 60, 0.6);
+            --accent-primary: #6366f1;
+            --accent-secondary: #a855f7;
+            --accent-gradient: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --glass-border: 1px solid rgba(255, 255, 255, 0.05);
+            --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+            --blur: blur(12px);
+        }
+
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            font-family: 'Outfit', sans-serif;
         }
-        
+
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background-color: var(--bg-dark);
+            color: var(--text-main);
             min-height: 100vh;
             display: flex;
-            align-items: center;
             justify-content: center;
-            padding: 20px;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
         }
-        
+
+        /* Liquid Background Animation */
+        body::before, body::after {
+            content: '';
+            position: absolute;
+            width: 600px;
+            height: 600px;
+            border-radius: 50%;
+            background: var(--accent-secondary);
+            filter: blur(100px);
+            opacity: 0.15;
+            z-index: -1;
+            animation: liquid 15s infinite alternate ease-in-out;
+        }
+
+        body::before {
+            top: -100px;
+            left: -100px;
+            background: var(--accent-primary);
+        }
+
+        body::after {
+            bottom: -100px;
+            right: -100px;
+            animation-delay: -7s;
+        }
+
+        @keyframes liquid {
+            0% { transform: translate(0, 0) scale(1); }
+            50% { transform: translate(50px, 50px) scale(1.1); }
+            100% { transform: translate(-30px, 20px) scale(0.9); }
+        }
+
         .login-container {
-            background: white;
-            border-radius: 20px;
-            padding: 40px;
+            background: var(--bg-card);
+            backdrop-filter: var(--blur);
+            -webkit-backdrop-filter: var(--blur);
+            border: var(--glass-border);
+            border-radius: 24px;
+            padding: 3rem;
             width: 100%;
             max-width: 400px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            animation: slideUp 0.5s ease-out;
+            box-shadow: var(--glass-shadow);
+            position: relative;
+            z-index: 1;
         }
-        
-        @keyframes slideUp {
-            from {
-                opacity: 0;
-                transform: translateY(30px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        
+
         .login-header {
             text-align: center;
-            margin-bottom: 30px;
+            margin-bottom: 2.5rem;
         }
-        
-        .login-header h1 {
-            font-size: 2em;
-            color: #667eea;
-            margin-bottom: 10px;
+
+        .login-title {
+            font-size: 2rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
-        
-        .login-header p {
-            color: #666;
+
+        .login-subtitle {
+            color: var(--text-muted);
+            font-size: 0.9rem;
         }
-        
+
         .form-group {
-            margin-bottom: 20px;
+            margin-bottom: 1.5rem;
         }
-        
+
         .form-group label {
             display: block;
-            margin-bottom: 8px;
-            color: #333;
-            font-weight: 500;
+            margin-bottom: 0.5rem;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            margin-left: 4px;
         }
-        
-        .form-group input {
+
+        .form-control {
             width: 100%;
-            padding: 12px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            font-size: 1em;
-            transition: border-color 0.3s;
+            padding: 1rem;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            color: var(--text-main);
+            font-size: 1rem;
+            transition: all 0.3s;
         }
-        
-        .form-group input:focus {
+
+        .form-control:focus {
             outline: none;
-            border-color: #667eea;
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+            background: rgba(0, 0, 0, 0.3);
         }
-        
+
         .btn-login {
             width: 100%;
-            padding: 14px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 1rem;
+            background: var(--accent-gradient);
             color: white;
             border: none;
-            border-radius: 8px;
-            font-size: 1.1em;
+            border-radius: 12px;
+            font-size: 1rem;
             font-weight: 600;
             cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+            margin-top: 1rem;
         }
-        
+
         .btn-login:hover {
             transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5);
         }
         
         .btn-login:active {
             transform: translateY(0);
         }
         
-        .error-message {
-            background: #fee;
-            color: #c33;
-            padding: 12px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            border-left: 4px solid #c33;
+        .btn-login.loading {
+            opacity: 0.7;
+            cursor: wait;
         }
-        
-        .loading {
-            opacity: 0.6;
-            pointer-events: none;
+
+        .error-msg {
+            color: #ef4444;
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            padding: 1rem;
+            border-radius: 12px;
+            margin-bottom: 1.5rem;
+            text-align: center;
+            font-size: 0.9rem;
+            display: none;
         }
     </style>
 </head>
 <body>
     <div class="login-container">
         <div class="login-header">
-            <h1>⏰ Wecker</h1>
-            <p>Bitte einloggen</p>
+            <h1 class="login-title">Willkommen</h1>
+            <p class="login-subtitle">Bitte melde dich an, um fortzufahren</p>
         </div>
         
+        <div id="errorMsg" class="error-msg"></div>
+        
         {% if error %}
-        <div class="error-message">{{ error }}</div>
+        <div class="error-msg" style="display: block;">{{ error }}</div>
         {% endif %}
         
-        <form id="loginForm">
+        <form id="loginForm" onsubmit="handleLogin(event)">
             <div class="form-group">
                 <label for="username">Benutzername</label>
-                <input type="text" id="username" name="username" required autofocus>
+                <input type="text" id="username" name="username" class="form-control" required autocomplete="username">
             </div>
             
             <div class="form-group">
                 <label for="password">Passwort</label>
-                <input type="password" id="password" name="password" required>
+                <input type="password" id="password" name="password" class="form-control" required autocomplete="current-password">
             </div>
             
-            <button type="submit" class="btn-login">Einloggen</button>
+            <button type="submit" class="btn-login" id="loginBtn">Anmelden</button>
         </form>
     </div>
-    
+
     <script>
-        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+        async function handleLogin(e) {
             e.preventDefault();
             
-            const form = e.target;
-            const formData = new FormData(form);
-            const username = formData.get('username');
-            const password = formData.get('password');
+            const form = document.getElementById('loginForm');
+            const btn = document.getElementById('loginBtn');
+            const errorMsg = document.getElementById('errorMsg');
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
             
-            form.classList.add('loading');
+            btn.classList.add('loading');
+            btn.textContent = 'Wird angemeldet...';
+            btn.disabled = true;
+            errorMsg.style.display = 'none';
             
             try {
                 const response = await fetch('/api/auth/login', {
                     method: 'POST',
-                    credentials: 'include',  // Wichtig für Cookies/Sessions
+                    credentials: 'include',
                     headers: {
                         'Content-Type': 'application/json',
                         'X-Requested-With': 'XMLHttpRequest'
@@ -167,14 +230,9 @@
                     body: JSON.stringify({ username, password })
                 });
                 
-                // Prüfe Content-Type bevor JSON-Parse
                 const contentType = response.headers.get('content-type');
                 if (!contentType || !contentType.includes('application/json')) {
-                    const text = await response.text();
-                    console.error('Non-JSON response:', text);
-                    alert('Fehler: Ungültige Server-Antwort');
-                    form.classList.remove('loading');
-                    return;
+                    throw new Error('Ungültige Server-Antwort');
                 }
                 
                 const data = await response.json();
@@ -182,22 +240,32 @@
                 if (response.ok) {
                     window.location.href = '/';
                 } else {
-                    alert('Fehler: ' + (data.error || 'Ungueltige Anmeldedaten'));
-                    form.classList.remove('loading');
+                    throw new Error(data.error || 'Anmeldung fehlgeschlagen');
                 }
             } catch (error) {
                 console.error('Login error:', error);
-                if (error.name === 'TypeError' && error.message.includes('JSON')) {
-                    alert('Fehler: Server-Antwort konnte nicht gelesen werden');
-                } else if (error.name === 'TypeError' && error.message.includes('fetch')) {
-                    alert('Fehler: Verbindung zum Server fehlgeschlagen. Prüfe die URL und Netzwerkverbindung.');
-                } else {
-                    alert('Fehler beim Einloggen: ' + error.message);
-                }
-                form.classList.remove('loading');
+                errorMsg.textContent = error.message;
+                errorMsg.style.display = 'block';
+                
+                // Shake animation
+                const container = document.querySelector('.login-container');
+                container.style.animation = 'shake 0.5s cubic-bezier(.36,.07,.19,.97) both';
+                setTimeout(() => container.style.animation = '', 500);
+            } finally {
+                btn.classList.remove('loading');
+                btn.textContent = 'Anmelden';
+                btn.disabled = false;
             }
-        });
+        }
     </script>
+    
+    <style>
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-1px, 0, 0); }
+            20%, 80% { transform: translate3d(2px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+            40%, 60% { transform: translate3d(4px, 0, 0); }
+        }
+    </style>
 </body>
 </html>
-
