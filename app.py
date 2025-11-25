@@ -5,11 +5,15 @@ Web server with authentication, roles, REST API and web interface
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for, send_from_directory
 from functools import wraps
 from datetime import datetime, timedelta
+from functools import wraps
 import threading
 import time
 import atexit
 import os
 from config import WEB_PORT, WEB_HOST, DEBUG_MODE
+
+# CORS für API-Zugriff von überall
+from flask_cors import CORS
 
 from database import UserManager, SessionManager, SettingsManager
 from db_alarm_manager import DBAlarmManager
@@ -19,6 +23,32 @@ from sound_manager import SoundManager, SOUNDS_DIR
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)  # Change this in production!
+
+# Session-Konfiguration für Cross-Origin-Zugriff
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'  # Oder 'None' für Cross-Origin
+app.config['SESSION_COOKIE_SECURE'] = False  # True für HTTPS
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=24)
+
+# CORS für API-Zugriff von überall (wichtig für öffentlichen Zugriff)
+try:
+    from flask_cors import CORS
+    CORS(app, resources={
+        r"/api/*": {
+            "origins": "*",
+            "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+            "allow_headers": ["Content-Type", "Authorization", "X-Requested-With"],
+            "supports_credentials": True,
+            "max_age": 3600
+        },
+        r"/*": {
+            "origins": "*",
+            "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+            "allow_headers": ["Content-Type", "Authorization", "X-Requested-With"],
+            "supports_credentials": True
+        }
+    })
+except ImportError:
+    print("Warning: flask-cors not installed. CORS disabled. Install with: pip install flask-cors")
 
 # Initialize components
 user_manager = UserManager()
@@ -73,9 +103,13 @@ def check_alarms_loop():
                         # Get sound file path if custom sound is set
                         sound_file = None
                         if alarm.sound_file:
-                            sound_info = sound_manager.get_sound(int(alarm.sound_file)) if alarm.sound_file.isdigit() else None
-                            if sound_info:
-                                sound_file = sound_info['filepath']
+                            try:
+                                sound_id = int(alarm.sound_file) if isinstance(alarm.sound_file, str) and alarm.sound_file.isdigit() else alarm.sound_file
+                                sound_info = sound_manager.get_sound(sound_id)
+                                if sound_info and os.path.exists(sound_info['filepath']):
+                                    sound_file = sound_info['filepath']
+                            except (ValueError, TypeError) as e:
+                                print(f"Error loading sound file: {e}")
                         
                         hardware.start_alarm_sound(sound_file=sound_file)
             
@@ -153,16 +187,19 @@ atexit.register(cleanup)
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
+        # Prüfe ob es eine API-Anfrage ist
+        is_api = request.path.startswith('/api/') or request.is_json or request.headers.get('Content-Type') == 'application/json'
+        
         session_id = session.get('session_id')
         if not session_id:
-            if request.is_json:
+            if is_api:
                 return jsonify({'error': 'Authentication required'}), 401
             return redirect(url_for('login'))
         
         user_info = session_manager.get_session(session_id)
         if not user_info:
             session.clear()
-            if request.is_json:
+            if is_api:
                 return jsonify({'error': 'Session expired'}), 401
             return redirect(url_for('login'))
         
@@ -243,22 +280,40 @@ def index():
 
 
 # API Routes - Authentication
-@app.route('/api/auth/login', methods=['POST'])
+@app.route('/api/auth/login', methods=['POST', 'OPTIONS'])
 def api_login():
     """API login endpoint"""
-    data = request.json
+    if request.method == 'OPTIONS':
+        return '', 200
+    
+    if not request.is_json:
+        return jsonify({'error': 'Content-Type must be application/json'}), 400
+    
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'Invalid JSON data'}), 400
+    
     username = data.get('username')
     password = data.get('password')
+    
+    if not username or not password:
+        return jsonify({'error': 'Username and password required'}), 400
     
     user = user_manager.authenticate(username, password)
     if user:
         session_id = session_manager.create_session(user['id'])
         session['session_id'] = session_id
-        return jsonify({
+        session['user_id'] = user['id']
+        session['username'] = user['username']
+        session['role'] = user['role']
+        session.permanent = True
+        
+        response = jsonify({
             'success': True,
             'session_id': session_id,
             'user': user
         })
+        return response
     
     return jsonify({'error': 'Invalid credentials'}), 401
 
@@ -303,7 +358,13 @@ def get_alarms():
 @login_required
 def create_alarm():
     """Create a new alarm"""
-    data = request.json
+    if not request.is_json:
+        return jsonify({'error': 'Content-Type must be application/json'}), 400
+    
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'Invalid JSON data'}), 400
+    
     user = request.current_user
     
     time_str = data.get('time')
@@ -317,6 +378,10 @@ def create_alarm():
     if not time_str:
         return jsonify({'error': 'Time is required'}), 400
     
+    # Validierung: days muss Liste sein oder None
+    if days is not None and not isinstance(days, list):
+        days = []
+    
     try:
         alarm = alarm_manager.add_alarm(
             user['id'], time_str, days, enabled, label,
@@ -325,12 +390,22 @@ def create_alarm():
         return jsonify(alarm.to_dict()), 201
     except ValueError as e:
         return jsonify({'error': str(e)}), 400
+    except Exception as e:
+        print(f"Error creating alarm: {e}")
+        return jsonify({'error': 'Failed to create alarm'}), 500
 
 
 @app.route('/api/alarms/<int:alarm_id>', methods=['PUT'])
 @login_required
 def update_alarm(alarm_id):
     """Update an existing alarm"""
+    if not request.is_json:
+        return jsonify({'error': 'Content-Type must be application/json'}), 400
+    
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'Invalid JSON data'}), 400
+    
     user = request.current_user
     alarm = alarm_manager.get_alarm(alarm_id)
     
@@ -341,19 +416,30 @@ def update_alarm(alarm_id):
     if user['role'] != 'admin' and alarm.user_id != user['id']:
         return jsonify({'error': 'Permission denied'}), 403
     
-    data = request.json
-    alarm = alarm_manager.update_alarm(
-        alarm_id,
-        time_str=data.get('time'),
-        days=data.get('days'),
-        enabled=data.get('enabled'),
-        label=data.get('label'),
-        sound_file=data.get('sound_file'),
-        snooze_allowed=data.get('snooze_allowed'),
-        snooze_duration=data.get('snooze_duration')
-    )
+    # Validierung: days muss Liste sein oder None
+    days = data.get('days')
+    if days is not None and not isinstance(days, list):
+        days = []
     
-    return jsonify(alarm.to_dict())
+    try:
+        alarm = alarm_manager.update_alarm(
+            alarm_id,
+            time_str=data.get('time'),
+            days=days,
+            enabled=data.get('enabled'),
+            label=data.get('label'),
+            sound_file=data.get('sound_file'),
+            snooze_allowed=data.get('snooze_allowed'),
+            snooze_duration=data.get('snooze_duration')
+        )
+        
+        if not alarm:
+            return jsonify({'error': 'Failed to update alarm'}), 500
+        
+        return jsonify(alarm.to_dict())
+    except Exception as e:
+        print(f"Error updating alarm: {e}")
+        return jsonify({'error': 'Failed to update alarm'}), 500
 
 
 @app.route('/api/alarms/<int:alarm_id>', methods=['DELETE'])
@@ -386,8 +472,12 @@ def snooze_alarm(alarm_id):
     if not alarm.snooze_allowed:
         return jsonify({'error': 'Snooze not allowed for this alarm'}), 400
     
-    data = request.json
-    minutes = data.get('minutes')
+    # JSON-Daten optional (Standard: 5 Minuten)
+    if request.is_json:
+        data = request.get_json() or {}
+        minutes = data.get('minutes')
+    else:
+        minutes = None
     
     if alarm_manager.snooze_alarm(alarm_id, minutes):
         global active_alarm
@@ -439,12 +529,28 @@ def upload_sound():
     if file.filename == '':
         return jsonify({'error': 'No file selected'}), 400
     
+    # Check file size (max 10MB)
+    file.seek(0, os.SEEK_END)
+    file_size = file.tell()
+    file.seek(0)
+    
+    if file_size > 10 * 1024 * 1024:  # 10MB
+        return jsonify({'error': 'File too large. Maximum size: 10MB'}), 400
+    
+    # Check file extension
+    allowed_extensions = {'wav', 'mp3', 'ogg', 'flac'}
+    if '.' not in file.filename or file.filename.rsplit('.', 1)[1].lower() not in allowed_extensions:
+        return jsonify({'error': f'Invalid file type. Allowed: {", ".join(allowed_extensions)}'}), 400
+    
     try:
         user = request.current_user
         sound = sound_manager.upload_sound(file, user['id'], file.filename)
         return jsonify(sound), 201
     except ValueError as e:
         return jsonify({'error': str(e)}), 400
+    except Exception as e:
+        print(f"Error uploading sound: {e}")
+        return jsonify({'error': 'Upload failed'}), 500
 
 
 @app.route('/api/sounds/<int:sound_id>', methods=['DELETE'])
@@ -484,7 +590,13 @@ def get_users():
 @role_required('admin')
 def create_user():
     """Create a new user (admin only)"""
-    data = request.json
+    if not request.is_json:
+        return jsonify({'error': 'Content-Type must be application/json'}), 400
+    
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'Invalid JSON data'}), 400
+    
     username = data.get('username')
     password = data.get('password')
     role = data.get('role', 'user')
@@ -507,18 +619,29 @@ def get_status():
     current_time = datetime.now()
     user = request.current_user
     
-    if user['role'] == 'admin':
-        alarm_count = len(alarm_manager.get_all_alarms())
-    else:
-        alarm_count = len(alarm_manager.get_user_alarms(user['id']))
-    
-    return jsonify({
-        'current_time': current_time.isoformat(),
-        'alarm_count': alarm_count,
-        'active_alarm': active_alarm.to_dict() if active_alarm else None,
-        'hardware_available': display is not None and hardware is not None,
-        'user': user
-    })
+    try:
+        if user['role'] == 'admin':
+            alarm_count = len(alarm_manager.get_all_alarms())
+        else:
+            alarm_count = len(alarm_manager.get_user_alarms(user['id']))
+        
+        return jsonify({
+            'current_time': current_time.isoformat(),
+            'alarm_count': alarm_count,
+            'active_alarm': active_alarm.to_dict() if active_alarm else None,
+            'hardware_available': display is not None and hardware is not None,
+            'user': user
+        })
+    except Exception as e:
+        print(f"Error getting status: {e}")
+        return jsonify({
+            'current_time': current_time.isoformat(),
+            'alarm_count': 0,
+            'active_alarm': None,
+            'hardware_available': False,
+            'user': user,
+            'error': 'Failed to get full status'
+        }), 500
 
 
 @app.route('/api/time', methods=['GET'])
@@ -533,7 +656,17 @@ def get_time():
 
 if __name__ == '__main__':
     print(f"Starting Wecker server on {WEB_HOST}:{WEB_PORT}")
-    print("Web interface: http://localhost:{}/".format(WEB_PORT))
+    print("=" * 60)
+    print("Web interface:")
+    print(f"  - Lokal: http://localhost:{WEB_PORT}/")
+    print(f"  - Netzwerk: http://<raspberry-pi-ip>:{WEB_PORT}/")
+    print("=" * 60)
     print("Default admin: username='admin', password='admin'")
-    print("WARNING: Change default password!")
+    print("WARNING: Change default password immediately!")
+    print("=" * 60)
+    print("Für öffentlichen Zugriff:")
+    print("  1. Port-Forwarding im Router einrichten")
+    print("  2. Oder ngrok verwenden: ngrok http 5000")
+    print("  3. Siehe INSTALLATION.md für Details")
+    print("=" * 60)
     app.run(host=WEB_HOST, port=WEB_PORT, debug=DEBUG_MODE, threaded=True)

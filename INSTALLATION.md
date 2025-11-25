@@ -11,7 +11,7 @@
 6. [Erste Schritte](#erste-schritte)
 7. [Fehlerbehebung](#fehlerbehebung)
 
-> **Hinweis:** Diese Anleitung ist speziell für Raspberry Pi 4 Model B optimiert. Siehe auch [RASPBERRY_PI_4_HINWEISE.md](RASPBERRY_PI_4_HINWEISE.md) für Pi 4 spezifische Informationen.
+> **Hinweis:** Diese Anleitung ist speziell für Raspberry Pi 4 Model B optimiert und enthält alle notwendigen Informationen.
 
 ---
 
@@ -176,6 +176,30 @@ mkdir -p sounds
 chmod 755 sounds
 ```
 
+### 6. Datenbank (wird automatisch erstellt)
+
+**Wichtig:** Die SQLite-Datenbank wird automatisch beim ersten Start erstellt!
+
+```bash
+# Die Datenbank wird automatisch erstellt wenn du app.py startest
+# Keine manuelle Einrichtung nötig!
+
+# Datenbank-Datei: wecker.db (wird im Projekt-Verzeichnis erstellt)
+# Enthält: Users, Alarms, Settings, Sounds, Sessions
+```
+
+**Standard-Admin-Account:**
+- **Benutzername:** `admin`
+- **Passwort:** `admin`
+- **WICHTIG:** Ändere das Passwort sofort nach dem ersten Login!
+
+Falls die Datenbank neu erstellt werden muss:
+```bash
+cd ~/Wecker
+rm wecker.db  # Alte Datenbank löschen
+python3 -c "from database import init_database; init_database()"
+```
+
 ---
 
 ## Pin-Verbindungen
@@ -304,6 +328,30 @@ Lautsprecher          Raspberry Pi
 
 ---
 
+## Raspberry Pi 4 Model B - Wichtige Hinweise
+
+### Stromversorgung
+- **Netzteil:** Mindestens **3A** (nicht 2.5A!)
+- **Stecker:** **USB-C** (nicht Micro-USB!)
+- Verwende ein offizielles Pi 4 Netzteil oder hochwertiges USB-C Netzteil
+
+### GPIO-Pins
+- ✅ Die GPIO-Pins sind **identisch** zu anderen Pi-Modellen
+- Alle Anleitungen funktionieren ohne Änderungen
+- Pin-Belegung ist gleich
+
+### Audio-Ausgabe (Pi 4)
+- Audio-Jack muss aktiviert werden (nicht automatisch)
+- Pi 4 hat bessere HDMI-Audio-Unterstützung
+- Stelle sicher, dass Audio-Jack aktiviert ist
+
+### Performance
+- **64-bit OS empfohlen** für Pi 4
+- Pi 4 ist schnell genug für den Web-Server
+- Temperatur überwachen: `vcgencmd measure_temp` (sollte unter 80°C bleiben)
+
+---
+
 ## Konfiguration
 
 ### 1. GPIO-Pins anpassen (falls nötig)
@@ -320,24 +368,95 @@ BUTTON_PIN = 18      # Button pin
 SOUND_PIN = 25       # Sound pin (PWM) oder None für Audio-Jack
 ```
 
-### 2. Audio-Konfiguration (für Audio-Jack)
+### 2. Audio-Konfiguration (für Audio-Jack) - Raspberry Pi 4
 
 ```bash
-# Audio-Ausgang auf Audio-Jack setzen
+# Audio-Ausgang auf Audio-Jack setzen (Pi 4)
 sudo raspi-config
 # Navigiere zu: Advanced Options → Audio → Force 3.5mm ('headphone') jack
 
 # Oder per Command:
 sudo amixer cset numid=3 1
+
+# Für Raspberry Pi 4 - prüfe Audio-Geräte:
+aplay -l
+
+# Teste Audio:
+speaker-test -t sine -f 1000 -l 1 -c 2
+
+# Lautstärke einstellen:
+alsamixer
+# Mit Pfeiltasten nach oben/unten Lautstärke ändern
+# ESC zum Beenden
 ```
 
-### 3. Berechtigungen für GPIO
+### 3. Button-Modul Pin-Beschriftung (S, V, G)
+
+Dein Button-Modul hat folgende Beschriftung:
+- **V** = VCC (Versorgungsspannung) → Pin 1 oder Pin 2
+- **G** = GND (Ground/Masse) → Pin 14
+- **S** = Signal/OUT (Ausgang) → Pin 12 (GPIO 18)
+
+**Funktionsweise:**
+- Button losgelassen: S = LOW (0V)
+- Button gedrückt: S = HIGH (3.3V oder 5V)
+- Modul hat bereits interne Logik, kein externer Widerstand nötig!
+
+**Test:**
+```bash
+python3 -c "import RPi.GPIO as GPIO; import time; GPIO.setmode(GPIO.BCM); GPIO.setup(18, GPIO.IN); print('Button Test - drücke den Button:'); [print('Status:', 'GEDRÜCKT' if GPIO.input(18) == 1 else 'LOSGELASSEN') or time.sleep(0.5) for _ in range(10)]"
+```
+
+### 4. Berechtigungen für GPIO
 
 ```bash
 # Benutzer zur gpio-Gruppe hinzufügen (falls nötig)
 sudo usermod -a -G gpio $USER
 
 # Ausloggen und wieder einloggen, damit Änderungen wirksam werden
+```
+
+---
+
+## Schnellstart: Pin-Verbindungen im Überblick
+
+### TM1637 Display (4 Kabel)
+```
+VCC (Rot)        →    Pin 1 (3.3V) - oben links
+GND (Schwarz)    →    Pin 6 (GND) - links, 3. Reihe
+DIO (Gelb)       →    Pin 18 (GPIO 24) - rechts, 9. Reihe
+CLK (Grün)       →    Pin 16 (GPIO 23) - rechts, 8. Reihe
+```
+
+### Button-Modul (S, V, G)
+```
+V (VCC, Rot)      →    Pin 1 (3.3V) oder Pin 2 (5V)
+G (GND, Schwarz)  →    Pin 14 (GND) - rechts, 7. Reihe
+S (Signal, Gelb)  →    Pin 12 (GPIO 18) - rechts, 6. Reihe
+```
+
+### Lautsprecher
+**Option 1 (GPIO):** Pin 22 (GPIO 25) + Pin 20 (GND)  
+**Option 2 (Audio-Jack):** Audio-Jack des Raspberry Pi (empfohlen)
+
+### Pin 1 finden:
+- Schaue auf den Raspberry Pi von oben
+- GPIO-Header ist oben
+- Pin 1 ist **oben links** (neben dem "3.3V" Label)
+
+### Test-Commands nach dem Anschließen:
+```bash
+# Display CLK testen
+python3 -c "import RPi.GPIO as GPIO; GPIO.setmode(GPIO.BCM); GPIO.setup(23, GPIO.OUT); GPIO.output(23, GPIO.HIGH); print('GPIO 23 OK')"
+
+# Display DIO testen
+python3 -c "import RPi.GPIO as GPIO; GPIO.setmode(GPIO.BCM); GPIO.setup(24, GPIO.OUT); GPIO.output(24, GPIO.HIGH); print('GPIO 24 OK')"
+
+# Button testen
+python3 -c "import RPi.GPIO as GPIO; GPIO.setmode(GPIO.BCM); GPIO.setup(18, GPIO.IN); print('Button:', 'Gedrückt' if GPIO.input(18) == 1 else 'Losgelassen')"
+
+# Sound PWM testen
+python3 -c "import RPi.GPIO as GPIO; import time; GPIO.setmode(GPIO.BCM); GPIO.setup(25, GPIO.OUT); pwm = GPIO.PWM(25, 1000); pwm.start(50); time.sleep(1); pwm.stop(); print('GPIO 25 OK')"
 ```
 
 ---
@@ -386,6 +505,11 @@ http://<raspberry-pi-ip>:5000
 - **Benutzername:** `admin`
 - **Passwort:** `admin`
 - **WICHTIG:** Ändere das Passwort sofort nach dem ersten Login!
+
+**Datenbank:**
+- Die SQLite-Datenbank (`wecker.db`) wird automatisch beim ersten Start erstellt
+- Keine manuelle Einrichtung nötig!
+- Enthält: Users, Alarms, Settings, Sounds, Sessions
 
 ### 4. Server im Hintergrund laufen lassen
 
@@ -534,11 +658,30 @@ nano ~/Wecker/config.py
 1. Prüfe Firewall:
    ```bash
    sudo ufw allow 5000
+   sudo ufw status
    ```
 
-2. Prüfe ob Server auf 0.0.0.0 läuft (nicht nur localhost)
+2. Prüfe ob Server auf 0.0.0.0 läuft:
+   ```bash
+   # In config.py sollte stehen:
+   WEB_HOST = '0.0.0.0'  # Nicht '127.0.0.1' oder 'localhost'!
+   ```
 
-3. Für externen Zugang: Port-Forwarding im Router einrichten
+3. Prüfe ob Server läuft:
+   ```bash
+   sudo netstat -tulpn | grep 5000
+   # Sollte zeigen: 0.0.0.0:5000
+   ```
+
+4. Für externen Zugang:
+   - Port-Forwarding im Router einrichten (siehe oben)
+   - Oder ngrok verwenden: `ngrok http 5000`
+   - Oder Cloudflare Tunnel einrichten
+
+5. Prüfe Router-Einstellungen:
+   - Port-Forwarding aktiviert?
+   - Externe IP-Adresse korrekt?
+   - Firewall im Router erlaubt Port 5000?
 
 ### Problem: Datenbank-Fehler
 
@@ -549,6 +692,36 @@ cd ~/Wecker
 rm wecker.db
 python3 -c "from database import init_database; init_database()"
 ```
+
+**Hinweis:** Die Datenbank wird automatisch beim ersten Start von `app.py` erstellt. Falls Probleme auftreten, kann sie manuell neu erstellt werden.
+
+### Problem: Raspberry Pi 4 wird zu heiß
+
+**Lösung:**
+```bash
+# Temperatur prüfen
+vcgencmd measure_temp
+
+# Falls über 70°C:
+# - Kühlkörper aufsetzen
+# - Lüfter verwenden
+# - Pi in gut belüftetem Gehäuse
+```
+
+### Problem: Button-Modul funktioniert nicht
+
+**Lösung:**
+1. Prüfe Verbindungen:
+   - **V (VCC)** muss an Pin 1 oder Pin 2
+   - **G (GND)** muss an Pin 14
+   - **S (Signal)** muss an Pin 12 (GPIO 18)
+
+2. Teste Button:
+   ```bash
+   python3 -c "import RPi.GPIO as GPIO; GPIO.setmode(GPIO.BCM); GPIO.setup(18, GPIO.IN); print('Button Status:', 'Gedrückt' if GPIO.input(18) == 1 else 'Losgelassen')"
+   ```
+
+3. Prüfe ob Modul mit Strom versorgt ist (V an 3.3V oder 5V)
 
 ---
 

@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Raspberry Pi Wecker</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <style>
         * {
             margin: 0;
@@ -213,6 +214,39 @@
         @keyframes pulse {
             0%, 100% { opacity: 1; }
             50% { opacity: 0.9; }
+        }
+        
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        @keyframes slideOut {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+        }
+        
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            z-index: 10000;
+            animation: slideIn 0.3s ease-out;
         }
         
         .alarm-header {
@@ -578,7 +612,13 @@
                 <div class="card-header">
                     <div class="card-title">System Status</div>
                 </div>
-                <div id="systemStatus">Lade...</div>
+                <div id="systemStatus">
+                    <div style="display: flex; flex-direction: column; gap: 10px;">
+                        <div><strong>Hardware:</strong> <span id="hardwareStatus">Prüfe...</span></div>
+                        <div><strong>Alarme:</strong> <span id="alarmCount">-</span></div>
+                        <div><strong>Aktiver Alarm:</strong> <span id="activeAlarmStatus">Keiner</span></div>
+                    </div>
+                </div>
             </div>
         </div>
         
@@ -709,18 +749,49 @@
         
         // Initialize
         async function init() {
-            await loadUserInfo();
-            await loadAlarms();
-            await loadSounds();
-            updateTime();
-            setInterval(updateTime, 1000);
-            setInterval(loadAlarms, 2000);
-            
-            // Snooze toggle handler
-            document.getElementById('snoozeAllowed').addEventListener('change', function() {
-                document.getElementById('snoozeDurationGroup').style.display = 
-                    this.checked ? 'block' : 'none';
-            });
+            try {
+                await loadUserInfo();
+                await loadAlarms();
+                await loadSounds();
+                await loadSystemStatus();
+                updateTime();
+                setInterval(updateTime, 1000);
+                setInterval(loadAlarms, 2000);
+                setInterval(loadSystemStatus, 5000);
+                
+                // Snooze toggle handler
+                document.getElementById('snoozeAllowed').addEventListener('change', function() {
+                    document.getElementById('snoozeDurationGroup').style.display = 
+                        this.checked ? 'block' : 'none';
+                });
+            } catch (error) {
+                console.error('Initialization error:', error);
+                alert('Fehler beim Laden der Seite. Bitte Seite neu laden.');
+            }
+        }
+        
+        async function loadSystemStatus() {
+            try {
+                const response = await fetch('/api/status', {
+                    credentials: 'include',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+                if (response.ok) {
+                    const contentType = response.headers.get('content-type');
+                    if (contentType && contentType.includes('application/json')) {
+                        const data = await response.json();
+                        document.getElementById('hardwareStatus').textContent = 
+                            data.hardware_available ? 'Verfügbar ✓' : 'Nicht verfügbar ✗';
+                        document.getElementById('alarmCount').textContent = data.alarm_count;
+                        document.getElementById('activeAlarmStatus').textContent = 
+                            data.active_alarm ? (data.active_alarm.label || data.active_alarm.time) : 'Keiner';
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading system status:', error);
+            }
         }
         
         async function loadUserInfo() {
@@ -741,23 +812,66 @@
         }
         
         function updateTime() {
-            fetch('/api/time')
-                .then(res => res.json())
+            fetch('/api/time', {
+                credentials: 'include',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+                .then(res => {
+                    if (!res.ok) throw new Error('Time fetch failed');
+                    const contentType = res.headers.get('content-type');
+                    if (contentType && contentType.includes('application/json')) {
+                        return res.json();
+                    }
+                    throw new Error('Invalid response format');
+                })
                 .then(data => {
                     document.getElementById('currentTime').textContent = data.time;
                     document.getElementById('currentDate').textContent = data.date;
                 })
-                .catch(err => console.error('Error fetching time:', err));
+                .catch(err => {
+                    console.error('Error fetching time:', err);
+                    // Fallback: Lokale Zeit anzeigen
+                    const now = new Date();
+                    document.getElementById('currentTime').textContent = 
+                        now.toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit', second: '2-digit'});
+                    document.getElementById('currentDate').textContent = 
+                        now.toLocaleDateString('de-DE');
+                });
         }
         
         async function loadAlarms() {
             try {
-                const response = await fetch('/api/alarms');
+                const response = await fetch('/api/alarms', {
+                    credentials: 'include',  // Wichtig für Cookies/Sessions
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+                
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        window.location.href = '/login';
+                        return;
+                    }
+                    throw new Error('Fehler beim Laden der Alarme');
+                }
+                
+                // Prüfe Content-Type bevor JSON-Parse
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    const text = await response.text();
+                    console.error('Non-JSON response:', text);
+                    throw new Error('Ungültige Server-Antwort');
+                }
+                
                 const data = await response.json();
                 const alarms = data.alarms || [];
                 activeAlarmId = data.active_alarm ? data.active_alarm.id : null;
                 
                 const alarmList = document.getElementById('alarmList');
+                alarmList.classList.remove('loading');
                 
                 if (alarms.length === 0) {
                     alarmList.innerHTML = `
@@ -808,26 +922,52 @@
                         </div>
                     `;
                 }).join('');
-                
-                alarmList.classList.remove('loading');
             } catch (error) {
                 console.error('Error loading alarms:', error);
+                const alarmList = document.getElementById('alarmList');
+                alarmList.classList.remove('loading');
+                alarmList.innerHTML = `
+                    <div class="empty-state">
+                        <div style="color: #ef4444;">Fehler beim Laden der Alarme</div>
+                        <button class="btn btn-primary" onclick="loadAlarms()" style="margin-top: 10px;">Erneut versuchen</button>
+                    </div>
+                `;
             }
         }
         
         async function loadSounds() {
             try {
-                const response = await fetch('/api/sounds');
+                const response = await fetch('/api/sounds', {
+                    credentials: 'include',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        window.location.href = '/login';
+                        return;
+                    }
+                    throw new Error('Failed to load sounds');
+                }
+                
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    throw new Error('Invalid response format');
+                }
+                
                 const data = await response.json();
                 sounds = data.sounds || [];
                 
                 const soundList = document.getElementById('soundList');
+                if (!soundList) return;
+                
                 if (sounds.length === 0) {
-                    soundList.innerHTML = '<div class="empty-state" style="padding: 20px;">Keine Sounds vorhanden</div>';
+                    soundList.innerHTML = '<div class="empty-state" style="padding: 20px;">Keine Sounds vorhanden. Lade einen Sound hoch!</div>';
                 } else {
                     soundList.innerHTML = sounds.map(sound => `
                         <div class="sound-item" onclick="selectSound(${sound.id})" id="sound-${sound.id}">
-                            <span>🎵 ${sound.original_filename}</span>
+                            <span>🎵 ${sound.original_filename || sound.filename || 'Unbekannt'}</span>
                             <button class="btn btn-danger" style="padding: 4px 8px; font-size: 0.8em;" 
                                     onclick="event.stopPropagation(); deleteSound(${sound.id})">Löschen</button>
                         </div>
@@ -835,6 +975,10 @@
                 }
             } catch (error) {
                 console.error('Error loading sounds:', error);
+                const soundList = document.getElementById('soundList');
+                if (soundList) {
+                    soundList.innerHTML = '<div class="empty-state" style="padding: 20px; color: #ef4444;">Fehler beim Laden der Sounds</div>';
+                }
             }
         }
         
@@ -867,24 +1011,71 @@
             
             if (!file) return;
             
+            // Dateigröße prüfen (max 10MB)
+            if (file.size > 10 * 1024 * 1024) {
+                showNotification('Datei zu groß! Maximum: 10MB', 'error');
+                return;
+            }
+            
+            // Dateityp prüfen
+            const allowedTypes = ['audio/wav', 'audio/mpeg', 'audio/mp3', 'audio/ogg', 'audio/flac'];
+            if (!allowedTypes.includes(file.type) && !file.name.match(/\.(wav|mp3|ogg|flac)$/i)) {
+                showNotification('Ungültiger Dateityp! Erlaubt: WAV, MP3, OGG, FLAC', 'error');
+                return;
+            }
+            
             const formData = new FormData();
             formData.append('file', file);
+            
+            // Loading State
+            const uploadBtn = fileInput.parentElement;
+            const originalText = uploadBtn.innerHTML;
+            uploadBtn.innerHTML = '<div>⏳ Lade hoch...</div>';
+            uploadBtn.style.pointerEvents = 'none';
             
             try {
                 const response = await fetch('/api/sounds', {
                     method: 'POST',
-                    body: formData
+                    credentials: 'include',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: formData,
+                    timeout: 60000  // 60 Sekunden Timeout
                 });
                 
                 if (response.ok) {
-                    await loadSounds();
-                    fileInput.value = '';
+                    const contentType = response.headers.get('content-type');
+                    if (contentType && contentType.includes('application/json')) {
+                        await loadSounds();
+                        fileInput.value = '';
+                        uploadBtn.innerHTML = originalText;
+                        uploadBtn.style.pointerEvents = 'auto';
+                        showNotification('✓ Sound erfolgreich hochgeladen!', 'success');
+                    } else {
+                        throw new Error('Invalid response format');
+                    }
                 } else {
-                    const error = await response.json();
-                    alert('Fehler: ' + (error.error || 'Upload fehlgeschlagen'));
+                    const contentType = response.headers.get('content-type');
+                    if (contentType && contentType.includes('application/json')) {
+                        const error = await response.json();
+                        showNotification('Fehler: ' + (error.error || 'Upload fehlgeschlagen'), 'error');
+                    } else {
+                        const text = await response.text();
+                        showNotification('Fehler: ' + text.substring(0, 100), 'error');
+                    }
+                    uploadBtn.innerHTML = originalText;
+                    uploadBtn.style.pointerEvents = 'auto';
                 }
             } catch (error) {
-                alert('Fehler beim Upload: ' + error.message);
+                console.error('Upload error:', error);
+                if (error.name === 'TypeError' && error.message.includes('timeout')) {
+                    showNotification('Upload-Timeout. Bitte erneut versuchen.', 'error');
+                } else {
+                    showNotification('Fehler beim Upload: ' + error.message, 'error');
+                }
+                uploadBtn.innerHTML = originalText;
+                uploadBtn.style.pointerEvents = 'auto';
             }
         }
         
@@ -893,16 +1084,28 @@
             
             try {
                 const response = await fetch(`/api/sounds/${soundId}`, {
-                    method: 'DELETE'
+                    method: 'DELETE',
+                    credentials: 'include',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
                 });
                 
                 if (response.ok) {
                     await loadSounds();
+                    showNotification('Sound erfolgreich gelöscht', 'success');
                 } else {
-                    alert('Fehler beim Loeschen');
+                    const contentType = response.headers.get('content-type');
+                    if (contentType && contentType.includes('application/json')) {
+                        const error = await response.json();
+                        showNotification('Fehler: ' + (error.error || 'Löschen fehlgeschlagen'), 'error');
+                    } else {
+                        showNotification('Fehler beim Löschen', 'error');
+                    }
                 }
             } catch (error) {
-                alert('Fehler: ' + error.message);
+                console.error('Delete sound error:', error);
+                showNotification('Fehler: ' + error.message, 'error');
             }
         }
         
@@ -920,41 +1123,70 @@
         
         async function editAlarm(id) {
             try {
-                const response = await fetch('/api/alarms');
+                const response = await fetch('/api/alarms', {
+                    credentials: 'include',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+                if (!response.ok) {
+                    throw new Error('Failed to load alarms');
+                }
+                
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    throw new Error('Invalid response format');
+                }
+                
                 const data = await response.json();
                 const alarm = data.alarms.find(a => a.id === id);
                 
-                if (!alarm) return;
+                if (!alarm) {
+                    showNotification('Alarm nicht gefunden', 'error');
+                    return;
+                }
                 
                 document.getElementById('modalTitle').textContent = 'Alarm bearbeiten';
                 document.getElementById('alarmId').value = alarm.id;
                 document.getElementById('alarmTime').value = alarm.time;
                 document.getElementById('alarmLabel').value = alarm.label || '';
-                document.getElementById('alarmEnabled').checked = alarm.enabled;
-                document.getElementById('snoozeAllowed').checked = alarm.snooze_allowed;
+                document.getElementById('alarmEnabled').checked = alarm.enabled !== false;
+                document.getElementById('snoozeAllowed').checked = alarm.snooze_allowed !== false;
                 document.getElementById('snoozeDuration').value = alarm.snooze_duration || 5;
+                
+                // Snooze duration group visibility
+                document.getElementById('snoozeDurationGroup').style.display = 
+                    alarm.snooze_allowed !== false ? 'block' : 'none';
                 
                 // Set days
                 for (let i = 0; i < 7; i++) {
-                    document.getElementById(`day${i}`).checked = alarm.days && alarm.days.includes(i);
+                    const checkbox = document.getElementById(`day${i}`);
+                    if (checkbox) {
+                        checkbox.checked = alarm.days && Array.isArray(alarm.days) && alarm.days.includes(i);
+                    }
                 }
                 
                 // Set sound
                 if (alarm.sound_file) {
-                    selectedSoundId = alarm.sound_file;
+                    selectedSoundId = parseInt(alarm.sound_file) || alarm.sound_file;
                     switchSoundTab('custom');
+                    // Warte bis Sounds geladen sind
+                    await loadSounds();
                     setTimeout(() => {
-                        if (document.getElementById(`sound-${selectedSoundId}`)) {
+                        const soundElement = document.getElementById(`sound-${selectedSoundId}`);
+                        if (soundElement) {
                             selectSound(selectedSoundId);
                         }
-                    }, 100);
+                    }, 200);
                 } else {
                     switchSoundTab('default');
+                    selectedSoundId = null;
                 }
                 
                 document.getElementById('alarmModal').classList.add('active');
             } catch (error) {
-                alert('Fehler beim Laden des Alarms');
+                console.error('Error editing alarm:', error);
+                showNotification('Fehler beim Laden des Alarms: ' + error.message, 'error');
             }
         }
         
@@ -990,20 +1222,42 @@
                 const response = await fetch(url, {
                     method: method,
                     headers: {
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
                     },
+                    credentials: 'include',  // Wichtig für Cookies/Sessions
                     body: JSON.stringify(alarmData)
                 });
+                
+                // Prüfe Content-Type bevor JSON-Parse
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    const text = await response.text();
+                    console.error('Non-JSON response:', text);
+                    if (response.status === 401) {
+                        window.location.href = '/login';
+                        return;
+                    }
+                    showNotification('Fehler: Ungültige Server-Antwort', 'error');
+                    return;
+                }
+                
+                const data = await response.json();
                 
                 if (response.ok) {
                     closeAlarmModal();
                     await loadAlarms();
+                    showNotification('Alarm erfolgreich gespeichert', 'success');
                 } else {
-                    const error = await response.json();
-                    alert('Fehler: ' + (error.error || 'Speichern fehlgeschlagen'));
+                    showNotification('Fehler: ' + (data.error || 'Speichern fehlgeschlagen'), 'error');
                 }
             } catch (error) {
-                alert('Fehler: ' + error.message);
+                console.error('Error saving alarm:', error);
+                if (error.name === 'TypeError' && error.message.includes('JSON')) {
+                    showNotification('Fehler: Server-Antwort konnte nicht gelesen werden', 'error');
+                } else {
+                    showNotification('Fehler: ' + error.message, 'error');
+                }
             }
         });
         
@@ -1012,61 +1266,124 @@
             
             try {
                 const response = await fetch(`/api/alarms/${id}`, {
-                    method: 'DELETE'
+                    method: 'DELETE',
+                    credentials: 'include',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
                 });
                 
                 if (response.ok) {
                     await loadAlarms();
+                    showNotification('Alarm erfolgreich gelöscht', 'success');
                 } else {
-                    alert('Fehler beim Loeschen');
+                    const contentType = response.headers.get('content-type');
+                    if (contentType && contentType.includes('application/json')) {
+                        const error = await response.json();
+                        showNotification('Fehler: ' + (error.error || 'Löschen fehlgeschlagen'), 'error');
+                    } else {
+                        showNotification('Fehler beim Löschen', 'error');
+                    }
                 }
             } catch (error) {
-                alert('Fehler: ' + error.message);
+                console.error('Delete error:', error);
+                showNotification('Fehler: ' + error.message, 'error');
             }
+        }
+        
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                padding: 15px 20px;
+                background: ${type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : '#667eea'};
+                color: white;
+                border-radius: 10px;
+                box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+                z-index: 10000;
+                animation: slideIn 0.3s ease-out;
+            `;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.animation = 'slideOut 0.3s ease-out';
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
         }
         
         async function snoozeAlarm(id) {
             try {
                 const response = await fetch(`/api/alarms/${id}/snooze`, {
                     method: 'POST',
+                    credentials: 'include',
                     headers: {
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
                     },
                     body: JSON.stringify({ minutes: 5 })
                 });
                 
                 if (response.ok) {
                     await loadAlarms();
+                    showNotification('Alarm gesnoozt für 5 Minuten', 'success');
                 } else {
-                    const error = await response.json();
-                    alert('Fehler: ' + (error.error || 'Snooze fehlgeschlagen'));
+                    const contentType = response.headers.get('content-type');
+                    if (contentType && contentType.includes('application/json')) {
+                        const error = await response.json();
+                        showNotification('Fehler: ' + (error.error || 'Snooze fehlgeschlagen'), 'error');
+                    } else {
+                        showNotification('Fehler beim Snooze', 'error');
+                    }
                 }
             } catch (error) {
-                alert('Fehler: ' + error.message);
+                console.error('Snooze error:', error);
+                showNotification('Fehler: ' + error.message, 'error');
             }
         }
         
         async function dismissAlarm(id) {
             try {
                 const response = await fetch(`/api/alarms/${id}/dismiss`, {
-                    method: 'POST'
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
                 });
                 
                 if (response.ok) {
                     await loadAlarms();
+                    showNotification('Alarm ausgeschaltet', 'success');
                 } else {
-                    alert('Fehler beim Ausschalten');
+                    const contentType = response.headers.get('content-type');
+                    if (contentType && contentType.includes('application/json')) {
+                        const error = await response.json();
+                        showNotification('Fehler: ' + (error.error || 'Ausschalten fehlgeschlagen'), 'error');
+                    } else {
+                        showNotification('Fehler beim Ausschalten', 'error');
+                    }
                 }
             } catch (error) {
-                alert('Fehler: ' + error.message);
+                console.error('Dismiss error:', error);
+                showNotification('Fehler: ' + error.message, 'error');
             }
         }
         
         async function logout() {
             try {
-                await fetch('/api/auth/logout', { method: 'POST' });
+                await fetch('/api/auth/logout', { 
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
                 window.location.href = '/login';
             } catch (error) {
+                console.error('Logout error:', error);
                 window.location.href = '/login';
             }
         }

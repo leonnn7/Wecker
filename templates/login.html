@@ -159,11 +159,23 @@
             try {
                 const response = await fetch('/api/auth/login', {
                     method: 'POST',
+                    credentials: 'include',  // Wichtig für Cookies/Sessions
                     headers: {
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
                     },
                     body: JSON.stringify({ username, password })
                 });
+                
+                // Prüfe Content-Type bevor JSON-Parse
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    const text = await response.text();
+                    console.error('Non-JSON response:', text);
+                    alert('Fehler: Ungültige Server-Antwort');
+                    form.classList.remove('loading');
+                    return;
+                }
                 
                 const data = await response.json();
                 
@@ -174,7 +186,14 @@
                     form.classList.remove('loading');
                 }
             } catch (error) {
-                alert('Fehler beim Einloggen: ' + error.message);
+                console.error('Login error:', error);
+                if (error.name === 'TypeError' && error.message.includes('JSON')) {
+                    alert('Fehler: Server-Antwort konnte nicht gelesen werden');
+                } else if (error.name === 'TypeError' && error.message.includes('fetch')) {
+                    alert('Fehler: Verbindung zum Server fehlgeschlagen. Prüfe die URL und Netzwerkverbindung.');
+                } else {
+                    alert('Fehler beim Einloggen: ' + error.message);
+                }
                 form.classList.remove('loading');
             }
         });
