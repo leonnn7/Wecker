@@ -258,10 +258,11 @@ class SessionManager:
         
         if session:
             return {
-                'session_id': session['session_id'],
-                'user_id': session['user_id'],
+                'id': session['user_id'],  # 'id' für Konsistenz mit dem Rest des Codes
+                'user_id': session['user_id'],  # Behalte auch user_id für Rückwärtskompatibilität
                 'username': session['username'],
-                'role': session['role']
+                'role': session['role'],
+                'session_id': session['session_id']
             }
         return None
     

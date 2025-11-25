@@ -2,6 +2,64 @@
 
 **Für: Raspberry Pi 4 Model B**
 
+## ⚡ Schnellstart - Wichtige Commands
+
+### Server neu starten
+```bash
+# Wenn als systemd Service installiert:
+sudo systemctl restart wecker
+
+# Oder manuell (wenn im Terminal gestartet):
+# Strg+C zum Stoppen, dann:
+cd ~/Wecker
+source venv/bin/activate  # Falls Virtual Environment verwendet wird
+python3 app.py
+```
+
+### Software aktualisieren (neueste Version von GitHub holen)
+```bash
+cd ~/Wecker
+
+# Änderungen speichern (falls eigene Änderungen vorhanden):
+# git stash  # Optional: Eigene Änderungen temporär speichern
+
+# Neueste Version von GitHub holen:
+git pull origin main
+
+# Falls Konflikte auftreten:
+# git reset --hard origin/main  # ACHTUNG: Überschreibt lokale Änderungen!
+
+# Abhängigkeiten aktualisieren (falls requirements.txt geändert wurde):
+source venv/bin/activate  # Falls Virtual Environment verwendet wird
+pip install -r requirements.txt --upgrade
+
+# Server neu starten:
+sudo systemctl restart wecker  # Falls als Service installiert
+# Oder manuell neu starten
+```
+
+### GitHub Repository URL
+```
+https://github.com/leonnn7/Wecker
+```
+
+### Erste Installation vom GitHub Repository
+```bash
+# Repository klonen:
+cd ~
+git clone https://github.com/leonnn7/Wecker.git
+cd Wecker
+
+# Virtual Environment erstellen (empfohlen):
+python3 -m venv venv
+source venv/bin/activate
+
+# Abhängigkeiten installieren:
+pip install -r requirements.txt
+```
+
+---
+
 ## Inhaltsverzeichnis
 1. [Hardware-Vorbereitung](#hardware-vorbereitung)
 2. [Raspberry Pi Setup](#raspberry-pi-setup)
