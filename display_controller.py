@@ -114,6 +114,10 @@ class TM1637Display:
     
     def show_time(self, hours, minutes, colon=True):
         """Display time in HH:MM format"""
+        # Ensure hours and minutes are within valid range
+        hours = hours % 24
+        minutes = minutes % 60
+        
         hours_str = f"{hours:02d}"
         minutes_str = f"{minutes:02d}"
         
@@ -126,8 +130,22 @@ class TM1637Display:
         self._write_data(3, DIGITS.get(minutes_str[1], 0x00))
     
     def show_text(self, text):
-        """Display text (up to 4 characters)"""
-        text = text[:4].upper()
+        """Display text (up to 4 characters) or scroll if longer"""
+        text = str(text).upper()
+        
+        # Wenn Text länger als 4 Zeichen, scrolle
+        if len(text) > 4:
+            padding = "    " # 4 Leerzeichen
+            display_text = padding + text + padding
+            for i in range(len(display_text) - 3):
+                window = display_text[i:i+4]
+                self._show_fixed_text(window)
+                time.sleep(0.3)
+        else:
+            self._show_fixed_text(text)
+            
+    def _show_fixed_text(self, text):
+        """Helper to show exactly 4 chars"""
         for i, char in enumerate(text):
             if i < 4:
                 self._write_data(i, DIGITS.get(char, 0x00))
