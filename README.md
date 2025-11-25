@@ -7,6 +7,8 @@ Ein vollstaendiges Wecker-System mit Web-Interface und REST API fuer die Fernste
 - **[INSTALLATION.md](INSTALLATION.md)** - Komplette Installationsanleitung mit allen Commands
 - **[PIN_DIAGRAM.txt](PIN_DIAGRAM.txt)** - Detaillierte Pin-Belegung und Schaltplan
 - **[QUICK_START_PINS.md](QUICK_START_PINS.md)** - Schnellstart: Einfache Pin-Verbindungen
+- **[BUTTON_LAUTSPRECHER_ANLEITUNG.md](BUTTON_LAUTSPRECHER_ANLEITUNG.md)** - Spezielle Anleitung für Button-Modul und Lautsprecher
+- **[RASPBERRY_PI_4_HINWEISE.md](RASPBERRY_PI_4_HINWEISE.md)** - Spezielle Hinweise für Raspberry Pi 4 Model B
 
 ## Hardware-Komponenten
 

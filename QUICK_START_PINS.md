@@ -13,18 +13,24 @@ DIO (Gelb)       →    Pin 18 (GPIO 24) - rechts, 9. Reihe
 CLK (Grün)       →    Pin 16 (GPIO 23) - rechts, 8. Reihe
 ```
 
-### Button (2 Kabel)
+### Button-Modul (3-Pin Modul mit High Level Output)
 
 ```
-Button           →    Raspberry Pi Pin
+Button-Modul     →    Raspberry Pi Pin
 ─────────────────────────────────────
-Pin 1            →    Pin 12 (GPIO 18) - rechts, 6. Reihe
-Pin 2            →    Pin 14 (GND) - rechts, 7. Reihe
+VCC (Rot)        →    Pin 1 (3.3V) oder Pin 2 (5V)
+GND (Schwarz)    →    Pin 14 (GND) - rechts, 7. Reihe
+OUT (Gelb/Weiss) →    Pin 12 (GPIO 18) - rechts, 6. Reihe
 ```
 
-### Lautsprecher (2 Optionen)
+**Wichtig:** 
+- Das Modul hat bereits interne Logik
+- OUT gibt HIGH aus wenn Button gedrückt
+- Funktioniert mit 3.3V oder 5V
 
-**Option 1: Direkt an GPIO (einfach, aber leise)**
+### Lautsprecher (Mini 3W 8Ω mit JST-PH2.0 Stecker)
+
+**Option 1: Direkt an GPIO 25 (PWM)**
 ```
 Lautsprecher     →    Raspberry Pi Pin
 ─────────────────────────────────────
@@ -32,13 +38,21 @@ Lautsprecher     →    Raspberry Pi Pin
 - (Schwarz)      →    Pin 20 (GND) - rechts, 10. Reihe
 ```
 
+**Hinweis:** 
+- JST-PH2.0 Stecker müssen abgeschnitten werden
+- Oder: Verwende Adapter-Kabel (JST-PH2.0 zu Dupont)
+
 **Option 2: Audio-Jack (empfohlen für besseren Sound)**
 ```
 Lautsprecher     →    Raspberry Pi
 ─────────────────────────────────────
-+ (Rot)          →    Audio-Jack (grüner Stecker)
-- (Schwarz)      →    Audio-Jack (Masse)
++ (Rot)          →    Audio-Jack (Spitze)
+- (Schwarz)      →    Audio-Jack (Ring/Masse)
 ```
+
+**Hinweis:**
+- JST-PH2.0 Stecker an Audio-Kabel anpassen
+- Oder: Audio-Kabel mit 3.5mm Stecker verwenden
 
 ## Pin-Finder Hilfe
 
@@ -77,8 +91,8 @@ python3 -c "import RPi.GPIO as GPIO; GPIO.setmode(GPIO.BCM); GPIO.setup(23, GPIO
 # Display DIO testen (Pin 18)
 python3 -c "import RPi.GPIO as GPIO; GPIO.setmode(GPIO.BCM); GPIO.setup(24, GPIO.OUT); GPIO.output(24, GPIO.HIGH); print('Pin 18 (GPIO 24) OK')"
 
-# Button testen (Pin 12)
-python3 -c "import RPi.GPIO as GPIO; GPIO.setmode(GPIO.BCM); GPIO.setup(18, GPIO.IN, pull_up_down=GPIO.PUD_UP); print('Button Status:', 'Gedrückt' if GPIO.input(18) == 0 else 'Losgelassen')"
+# Button-Modul testen (Pin 12)
+python3 -c "import RPi.GPIO as GPIO; GPIO.setmode(GPIO.BCM); GPIO.setup(18, GPIO.IN); print('Button Status:', 'Gedrückt' if GPIO.input(18) == 1 else 'Losgelassen')"
 
 # Sound testen (Pin 22)
 python3 -c "import RPi.GPIO as GPIO; import time; GPIO.setmode(GPIO.BCM); GPIO.setup(25, GPIO.OUT); pwm = GPIO.PWM(25, 1000); pwm.start(50); time.sleep(1); pwm.stop(); print('Pin 22 (GPIO 25) OK')"

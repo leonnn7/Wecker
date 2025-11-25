@@ -22,10 +22,12 @@ class HardwareController:
         self.alarm_active = False
         
         GPIO.setmode(GPIO.BCM)
-        GPIO.setup(BUTTON_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+        # Button-Modul hat High Level Output (HIGH wenn gedrückt)
+        # Kein Pull-up nötig, da Modul bereits Logik hat
+        GPIO.setup(BUTTON_PIN, GPIO.IN)
         
-        # Setup button interrupt
-        GPIO.add_event_detect(BUTTON_PIN, GPIO.FALLING, 
+        # Setup button interrupt - RISING weil Modul HIGH ausgibt wenn gedrückt
+        GPIO.add_event_detect(BUTTON_PIN, GPIO.RISING, 
                              callback=self._button_pressed, 
                              bouncetime=300)
         

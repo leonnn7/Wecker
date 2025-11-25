@@ -1,5 +1,7 @@
 # Raspberry Pi Wecker - Komplette Installationsanleitung
 
+**Für: Raspberry Pi 4 Model B**
+
 ## Inhaltsverzeichnis
 1. [Hardware-Vorbereitung](#hardware-vorbereitung)
 2. [Raspberry Pi Setup](#raspberry-pi-setup)
@@ -9,14 +11,17 @@
 6. [Erste Schritte](#erste-schritte)
 7. [Fehlerbehebung](#fehlerbehebung)
 
+> **Hinweis:** Diese Anleitung ist speziell für Raspberry Pi 4 Model B optimiert. Siehe auch [RASPBERRY_PI_4_HINWEISE.md](RASPBERRY_PI_4_HINWEISE.md) für Pi 4 spezifische Informationen.
+
 ---
 
 ## Hardware-Vorbereitung
 
 ### Benötigte Hardware:
-- Raspberry Pi (3B+, 4B oder neuer empfohlen)
-- MicroSD-Karte (mindestens 16GB, Class 10)
-- Netzteil für Raspberry Pi (5V, mindestens 2.5A)
+- **Raspberry Pi 4 Model B** (dein Modell)
+- MicroSD-Karte (mindestens 16GB, Class 10, empfohlen: 32GB+)
+- **Netzteil für Raspberry Pi 4** (5V, **mindestens 3A** - wichtig für Pi 4!)
+- USB-C Kabel (für Pi 4)
 - **TM1637 4-Bit 7-Segment Display** (0.36" rot)
 - **Button/Schalter** (momentaner Taster)
 - **Lautsprecher** (passive Lautsprecher mit Kabeln)
@@ -32,11 +37,12 @@
 #### Option A: Raspberry Pi Imager (Empfohlen)
 1. Lade den **Raspberry Pi Imager** herunter: https://www.raspberrypi.com/software/
 2. Installiere und öffne den Imager
-3. Wähle "Raspberry Pi OS (64-bit)" oder "Raspberry Pi OS (32-bit)"
+3. Wähle **"Raspberry Pi OS (64-bit)"** - empfohlen für Pi 4!
 4. Klicke auf das Zahnrad-Symbol für erweiterte Optionen:
    - Aktiviere SSH
    - Setze Benutzername und Passwort
    - Konfiguriere WLAN (optional)
+   - **Wichtig für Pi 4:** Aktiviere "Enable 64-bit OS" falls verfügbar
 5. Schreibe das Image auf die SD-Karte
 
 #### Option B: Manuelle Installation
@@ -209,45 +215,53 @@ CLK (Grün)     →      Pin 16 (GPIO 23)
 - Das Display kann mit 3.3V oder 5V betrieben werden
 - Wenn das Display nicht richtig funktioniert, versuche 5V (Pin 2) statt 3.3V
 
-#### Button/Schalter
+#### Button-Modul (3-Pin Modul mit High Level Output)
 
 ```
-Button                Raspberry Pi
+Button-Modul          Raspberry Pi
 ─────────────────────────────────
-Pin 1                 →      Pin 12 (GPIO 18)
-Pin 2                 →      Pin 14 (GND)
+VCC (Rot)             →      Pin 1 (3.3V) oder Pin 2 (5V)
+GND (Schwarz)         →      Pin 14 (GND)
+OUT (Gelb/Weiss)      →      Pin 12 (GPIO 18)
 ```
 
 **Wichtig:**
-- Der Button wird mit internem Pull-up verwendet
-- Bei gedrücktem Button: GPIO 18 → GND (LOW)
-- Bei losgelassenem Button: GPIO 18 → HIGH (interner Pull-up)
+- Das Modul hat bereits interne Logik und Pull-up Widerstand
+- OUT gibt HIGH (3.3V/5V) aus wenn Button gedrückt
+- OUT gibt LOW (0V) aus wenn Button losgelassen
+- Das Modul funktioniert mit 3.3V oder 5V
+- Kein externer Widerstand nötig!
 
-#### Lautsprecher
+#### Lautsprecher (Mini 3W 8Ω mit JST-PH2.0 Stecker)
 
-**Option 1: Direkt über GPIO (PWM) - Einfach, aber leise**
-
-```
-Lautsprecher          Raspberry Pi
-─────────────────────────────────
-+ (Rot)               →      Pin 20 (GPIO 25)
-- (Schwarz)           →      Pin 20 (GND) oder Pin 14 (GND)
-```
-
-**Option 2: Über Audio-Jack (Besser für Sound-Qualität)**
+**Option 1: Direkt über GPIO 25 (PWM)**
 
 ```
 Lautsprecher          Raspberry Pi
 ─────────────────────────────────
-+ (Rot)               →      Audio-Jack (grüner Stecker)
-- (Schwarz)           →      Audio-Jack (Masse)
++ (Rot)               →      Pin 22 (GPIO 25)
+- (Schwarz)           →      Pin 20 (GND)
 ```
 
 **Wichtig für Option 1:**
-- Verwende einen kleinen Widerstand (100-220Ω) in Reihe, um den GPIO zu schützen
-- Oder verwende einen Transistor/Verstärker für bessere Qualität
+- Die JST-PH2.0 Stecker müssen abgeschnitten werden
+- Oder: Verwende Adapter-Kabel (JST-PH2.0 zu Dupont)
+- Der 8Ω Lautsprecher kann direkt an GPIO 25 (PWM) angeschlossen werden
+- Für bessere Qualität: Audio-Jack verwenden!
 
-**Empfohlen: Audio-Jack verwenden für bessere Sound-Qualität!**
+**Option 2: Über Audio-Jack (Empfohlen für bessere Sound-Qualität)**
+
+```
+Lautsprecher          Raspberry Pi
+─────────────────────────────────
++ (Rot)               →      Audio-Jack (Spitze)
+- (Schwarz)           →      Audio-Jack (Ring/Masse)
+```
+
+**Hinweis für Option 2:**
+- JST-PH2.0 Stecker müssen an Audio-Kabel angepasst werden
+- Oder: Verwende ein Audio-Kabel mit 3.5mm Stecker
+- Bessere Sound-Qualität als GPIO-PWM
 
 ### Komplette Pin-Belegung Tabelle
 
@@ -257,28 +271,30 @@ Lautsprecher          Raspberry Pi
 | TM1637 GND | GND | - | Pin 6 | Schwarz |
 | TM1637 DIO | GPIO 24 | 24 | Pin 18 | Gelb |
 | TM1637 CLK | GPIO 23 | 23 | Pin 16 | Grün |
-| Button Pin 1 | GPIO 18 | 18 | Pin 12 | - |
-| Button Pin 2 | GND | - | Pin 14 | - |
-| Sound (PWM) | GPIO 25 | 25 | Pin 20 | - |
-| Sound GND | GND | - | Pin 20 (GND) | - |
+| Button VCC | 3.3V/5V | - | Pin 1 oder 2 | Rot |
+| Button GND | GND | - | Pin 14 | Schwarz |
+| Button OUT | GPIO 18 | 18 | Pin 12 | Gelb/Weiss |
+| Sound (PWM) | GPIO 25 | 25 | Pin 22 | Rot |
+| Sound GND | GND | - | Pin 20 | Schwarz |
 
 ### Visuelle Darstellung (von oben gesehen)
 
 ```
-        [Display]          [Button]
+        [Display]          [Button-Modul]
            │                  │
     VCC ───┘                  │
     GND ───┘                  │
     DIO ───┘ (Pin 18)        │
     CLK ───┘ (Pin 16)        │
                              │
-                    GPIO 18 ──┘ (Pin 12)
-                    GND ────────┘ (Pin 14)
+                    VCC ──────┘ (Pin 1 oder 2)
+                    GND ──────┘ (Pin 14)
+                    OUT ──────┘ (Pin 12 - GPIO 18)
 
     [Lautsprecher]
          │
-    GPIO 25 ───┘ (Pin 20)
-    GND ────────┘ (Pin 20 GND)
+    GPIO 25 ───┘ (Pin 22)
+    GND ────────┘ (Pin 20)
 ```
 
 ---
@@ -467,14 +483,23 @@ sudo usermod -a -G gpio $USER
    python3 -c "import RPi.GPIO as GPIO; GPIO.setmode(GPIO.BCM); GPIO.setup(25, GPIO.OUT); pwm = GPIO.PWM(25, 1000); pwm.start(50); import time; time.sleep(2); pwm.stop()"
    ```
 
-2. **Bei Audio-Jack:**
+2. **Bei Audio-Jack (Raspberry Pi 4):**
    ```bash
-   # Audio testen:
-   speaker-test -t sine -f 1000 -l 1
+   # Prüfe Audio-Geräte:
+   aplay -l
    
-   # Lautstärke prüfen:
+   # Audio testen:
+   speaker-test -t sine -f 1000 -l 1 -c 2
+   
+   # Lautstärke prüfen und einstellen:
    alsamixer
    # Mit Pfeiltasten Lautstärke erhöhen
+   # 'M' für Mute/Unmute
+   
+   # Falls Audio-Jack nicht funktioniert, prüfe ob HDMI-Audio aktiv ist:
+   # Deaktiviere HDMI-Audio falls nötig:
+   sudo raspi-config
+   # Advanced Options → Audio → Force 3.5mm jack
    ```
 
 ### Problem: "Module not found: RPi.GPIO"

@@ -1,7 +1,7 @@
 # GPIO Pin Configuration
 TM1637_CLK_PIN = 23  # Clock pin for TM1637 display
 TM1637_DIO_PIN = 24  # Data pin for TM1637 display
-BUTTON_PIN = 18      # Button pin (with pull-up resistor)
+BUTTON_PIN = 18      # Button pin (Button-Modul mit High Level Output)
 SOUND_PIN = 25       # PWM pin for sound output
 
 # Web Server Configuration

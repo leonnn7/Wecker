@@ -57,22 +57,27 @@ VERBINDUNGEN IM DETAIL (DIREKT AN RASPBERRY PI PINS):
    - Pin 16 = GPIO 23 (rechts, achte Reihe)
    - Pin 18 = GPIO 24 (rechts, neunte Reihe)
 
-2. BUTTON (Momentaner Taster)
+2. BUTTON-MODUL (3-Pin Modul mit High Level Output)
    ┌─────────────────────────────────────────────────┐
-   │ Button            →    Raspberry Pi Pin          │
+   │ Button-Modul      →    Raspberry Pi Pin          │
    ├─────────────────────────────────────────────────┤
-   │ Button Pin 1      →    Pin 12 (GPIO 18)         │
-   │ Button Pin 2      →    Pin 14 (GND)             │
+   │ VCC (Rot)         →    Pin 1 (3.3V) oder        │
+   │                      Pin 2 (5V)                 │
+   │ GND (Schwarz)     →    Pin 14 (GND)             │
+   │ OUT (Gelb/Weiss)   →    Pin 12 (GPIO 18)         │
    └─────────────────────────────────────────────────┘
    
    WICHTIG: 
-   - Pin 12 = GPIO 18 (rechts, sechste Reihe)
+   - Dieses Modul hat bereits interne Logik und Pull-up!
+   - Pin 1 = 3.3V (links oben) ODER Pin 2 = 5V (rechts oben)
    - Pin 14 = GND (rechts, siebte Reihe)
-   - Interner Pull-up wird verwendet!
-   - Gedrückt: GPIO 18 → GND (LOW)
-   - Losgelassen: GPIO 18 → HIGH
+   - Pin 12 = GPIO 18 (rechts, sechste Reihe)
+   - OUT gibt HIGH (3.3V/5V) aus wenn Button gedrückt
+   - Das Modul funktioniert mit 3.3V oder 5V
 
-3. LAUTSPRECHER (Option 1: PWM über GPIO)
+3. LAUTSPRECHER (Mini Lautsprecher 3W 8Ω mit JST-PH2.0)
+   
+   Option A: Direkt an GPIO 25 (PWM) - Einfach
    ┌─────────────────────────────────────────────────┐
    │ Lautsprecher      →    Raspberry Pi Pin         │
    ├─────────────────────────────────────────────────┤
@@ -81,11 +86,14 @@ VERBINDUNGEN IM DETAIL (DIREKT AN RASPBERRY PI PINS):
    └─────────────────────────────────────────────────┘
    
    WICHTIG:
+   - Die JST-PH2.0 Stecker müssen abgeschnitten werden
+   - Oder: Verwende JST-PH2.0 zu Dupont-Kabel Adapter
    - Pin 22 = GPIO 25 (rechts, elfte Reihe)
    - Pin 20 = GND (rechts, zehnte Reihe)
-   - EMPFEHLUNG: Verwende Audio-Jack für bessere Qualität!
+   - Lautsprecher ist 8Ω, kann direkt an GPIO (mit PWM)
+   - Für bessere Qualität: Audio-Jack verwenden!
 
-4. LAUTSPRECHER (Option 2: Audio-Jack - EMPFOHLEN)
+   Option B: Über Audio-Jack - EMPFOHLEN
    ┌─────────────────────────────────────────────────┐
    │ Lautsprecher      →    Raspberry Pi               │
    ├─────────────────────────────────────────────────┤
@@ -94,6 +102,7 @@ VERBINDUNGEN IM DETAIL (DIREKT AN RASPBERRY PI PINS):
    └─────────────────────────────────────────────────┘
    
    Vorteil: Bessere Sound-Qualität, keine GPIO-Belastung
+   Hinweis: JST-PH2.0 Stecker müssen an Audio-Kabel angepasst werden
 
 
 SCHALTSCHEMA (Text-Darstellung):
@@ -106,10 +115,11 @@ SCHALTSCHEMA (Text-Darstellung):
         DIO ──┘ → Pin 18 (GPIO 24)
         CLK ──┘ → Pin 16 (GPIO 23)
         
-        [Button]
+        [Button-Modul]
               │
-        Pin 1 ──┘ → Pin 12 (GPIO 18)
-        Pin 2 ──┘ → Pin 14 (GND)
+        VCC ───┘ → Pin 1 (3.3V) oder Pin 2 (5V)
+        GND ───┘ → Pin 14 (GND)
+        OUT ───┘ → Pin 12 (GPIO 18)
         
         [Lautsprecher]
               │
@@ -160,8 +170,8 @@ python3 -c "import RPi.GPIO as GPIO; GPIO.setmode(GPIO.BCM); GPIO.setup(23, GPIO
 # GPIO 24 testen (Display DIO):
 python3 -c "import RPi.GPIO as GPIO; GPIO.setmode(GPIO.BCM); GPIO.setup(24, GPIO.OUT); GPIO.output(24, GPIO.HIGH); print('OK')"
 
-# GPIO 18 testen (Button):
-python3 -c "import RPi.GPIO as GPIO; GPIO.setmode(GPIO.BCM); GPIO.setup(18, GPIO.IN, pull_up_down=GPIO.PUD_UP); print('Button:', GPIO.input(18))"
+# GPIO 18 testen (Button-Modul OUT):
+python3 -c "import RPi.GPIO as GPIO; GPIO.setmode(GPIO.BCM); GPIO.setup(18, GPIO.IN); print('Button Status:', 'Gedrückt' if GPIO.input(18) == 1 else 'Losgelassen')"
 
 # GPIO 25 testen (Sound PWM):
 python3 -c "import RPi.GPIO as GPIO; import time; GPIO.setmode(GPIO.BCM); GPIO.setup(25, GPIO.OUT); pwm = GPIO.PWM(25, 1000); pwm.start(50); time.sleep(1); pwm.stop(); print('OK')"
