@@ -827,7 +827,8 @@ nano ~/Wecker/config.py
       
    **Alternative: Port-Forwarding (Nur für Fortgeschrittene)**
    - Port 5000 im Router an die IP des Raspberry Pi weiterleiten.
-   - Achtung: Unsicher ohne HTTPS!
+   - **Achtung:** Funktioniert oft NICHT bei modernen Internetanschlüssen (DS-Lite / IPv6-only), da man keine eigene öffentliche IPv4-Adresse hat.
+   - Unsicher ohne HTTPS! Nutze lieber Cloudflare Tunnel.
    
    **Alternative: ngrok (Schnelltest)**
    ```bash
