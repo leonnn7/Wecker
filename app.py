@@ -671,6 +671,89 @@ def get_time():
     })
 
 
+# API Routes - Hardware Tests (Admin only)
+@app.route('/api/hardware/test/display', methods=['POST'])
+@role_required('admin')
+def test_display():
+    """Test the display"""
+    try:
+        if not display:
+            return jsonify({'error': 'Display nicht verfügbar'}), 400
+        
+        # Test: Zeige "TEST" für 2 Sekunden
+        display.show_text("TEST")
+        import threading
+        def reset_display():
+            time.sleep(2)
+            # Zeige aktuelle Zeit wieder
+            now = datetime.now()
+            display.show_time(now.hour, now.minute)
+        
+        thread = threading.Thread(target=reset_display, daemon=True)
+        thread.start()
+        
+        return jsonify({'success': True, 'message': 'Display-Test gestartet'})
+    except Exception as e:
+        print(f"Error testing display: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': f'Display-Test fehlgeschlagen: {str(e)}'}), 500
+
+
+@app.route('/api/hardware/test/sound', methods=['POST'])
+@role_required('admin')
+def test_sound():
+    """Test the sound output"""
+    try:
+        if not hardware:
+            return jsonify({'error': 'Hardware nicht verfügbar'}), 400
+        
+        # Test: Spiele 2 Sekunden Sound
+        hardware.start_alarm_sound()
+        import threading
+        def stop_sound():
+            time.sleep(2)
+            hardware.stop_sound()
+        
+        thread = threading.Thread(target=stop_sound, daemon=True)
+        thread.start()
+        
+        return jsonify({'success': True, 'message': 'Sound-Test gestartet (2 Sekunden)'})
+    except Exception as e:
+        print(f"Error testing sound: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': f'Sound-Test fehlgeschlagen: {str(e)}'}), 500
+
+
+@app.route('/api/hardware/test/button', methods=['POST'])
+@role_required('admin')
+def test_button():
+    """Test the button - returns current button state"""
+    try:
+        if not hardware:
+            return jsonify({'error': 'Hardware nicht verfügbar'}), 400
+        
+        import RPi.GPIO as GPIO
+        from config import BUTTON_PIN
+        
+        # Lese Button-Status
+        button_state = GPIO.input(BUTTON_PIN)
+        button_pressed = button_state == GPIO.HIGH  # Button-Modul gibt HIGH wenn gedrückt
+        
+        return jsonify({
+            'success': True,
+            'button_pressed': button_pressed,
+            'button_state': 'Gedrückt' if button_pressed else 'Losgelassen',
+            'message': 'Button-Status gelesen. Drücke den Button und teste erneut.'
+        })
+    except Exception as e:
+        print(f"Error testing button: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': f'Button-Test fehlgeschlagen: {str(e)}'}), 500
+
+
 if __name__ == '__main__':
     print(f"Starting Wecker server on {WEB_HOST}:{WEB_PORT}")
     print("=" * 60)

@@ -611,6 +611,11 @@
             <div class="card">
                 <div class="card-header">
                     <div class="card-title">System Status</div>
+                    <div id="adminHardwareTest" style="display: none;">
+                        <button class="btn btn-secondary" onclick="openHardwareTestModal()" style="font-size: 0.9em; padding: 8px 16px;">
+                            🔧 Hardware testen
+                        </button>
+                    </div>
                 </div>
                 <div id="systemStatus">
                     <div style="display: flex; flex-direction: column; gap: 10px;">
@@ -628,6 +633,46 @@
                 <button class="btn btn-primary" onclick="openAddAlarmModal()">+ Neuer Alarm</button>
             </div>
             <div id="alarmList" class="loading">Lade Alarme...</div>
+        </div>
+    </div>
+    
+    <!-- Hardware Test Modal -->
+    <div class="modal" id="hardwareTestModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>🔧 Hardware-Test</h2>
+                <button class="modal-close" onclick="closeHardwareTestModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <div style="display: flex; flex-direction: column; gap: 20px;">
+                    <div>
+                        <h3 style="margin-bottom: 10px;">Display-Test</h3>
+                        <p style="color: #666; margin-bottom: 10px;">Zeigt "TEST" auf dem Display für 2 Sekunden</p>
+                        <button class="btn btn-primary" onclick="testDisplay()" id="testDisplayBtn">
+                            📺 Display testen
+                        </button>
+                        <div id="displayTestResult" style="margin-top: 10px;"></div>
+                    </div>
+                    
+                    <div style="border-top: 1px solid #e5e7eb; padding-top: 20px;">
+                        <h3 style="margin-bottom: 10px;">Sound-Test</h3>
+                        <p style="color: #666; margin-bottom: 10px;">Spielt 2 Sekunden Test-Sound ab</p>
+                        <button class="btn btn-primary" onclick="testSound()" id="testSoundBtn">
+                            🔊 Sound testen
+                        </button>
+                        <div id="soundTestResult" style="margin-top: 10px;"></div>
+                    </div>
+                    
+                    <div style="border-top: 1px solid #e5e7eb; padding-top: 20px;">
+                        <h3 style="margin-bottom: 10px;">Button-Test</h3>
+                        <p style="color: #666; margin-bottom: 10px;">Liest den aktuellen Button-Status</p>
+                        <button class="btn btn-primary" onclick="testButton()" id="testButtonBtn">
+                            🔘 Button-Status prüfen
+                        </button>
+                        <div id="buttonTestResult" style="margin-top: 10px;"></div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
     
@@ -796,18 +841,167 @@
         
         async function loadUserInfo() {
             try {
-                const response = await fetch('/api/auth/me');
+                const response = await fetch('/api/auth/me', {
+                    credentials: 'include',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
                 if (response.ok) {
-                    currentUser = await response.json();
-                    document.getElementById('username').textContent = currentUser.username;
-                    const roleBadge = document.getElementById('roleBadge');
-                    roleBadge.textContent = currentUser.role.toUpperCase();
-                    roleBadge.className = 'role-badge role-' + currentUser.role;
+                    const contentType = response.headers.get('content-type');
+                    if (contentType && contentType.includes('application/json')) {
+                        currentUser = await response.json();
+                        document.getElementById('username').textContent = currentUser.username;
+                        const roleBadge = document.getElementById('roleBadge');
+                        roleBadge.textContent = currentUser.role.toUpperCase();
+                        roleBadge.className = 'role-badge role-' + currentUser.role;
+                        
+                        // Zeige Hardware-Test Button nur für Admins
+                        if (currentUser.role === 'admin') {
+                            document.getElementById('adminHardwareTest').style.display = 'block';
+                        }
+                    }
                 } else {
                     window.location.href = '/login';
                 }
             } catch (error) {
                 console.error('Error loading user info:', error);
+            }
+        }
+        
+        function openHardwareTestModal() {
+            document.getElementById('hardwareTestModal').classList.add('active');
+        }
+        
+        function closeHardwareTestModal() {
+            document.getElementById('hardwareTestModal').classList.remove('active');
+            // Reset results
+            document.getElementById('displayTestResult').innerHTML = '';
+            document.getElementById('soundTestResult').innerHTML = '';
+            document.getElementById('buttonTestResult').innerHTML = '';
+        }
+        
+        async function testDisplay() {
+            const btn = document.getElementById('testDisplayBtn');
+            const result = document.getElementById('displayTestResult');
+            const originalText = btn.innerHTML;
+            
+            btn.disabled = true;
+            btn.innerHTML = '⏳ Teste...';
+            result.innerHTML = '';
+            
+            try {
+                const response = await fetch('/api/hardware/test/display', {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+                
+                const contentType = response.headers.get('content-type');
+                if (contentType && contentType.includes('application/json')) {
+                    const data = await response.json();
+                    
+                    if (response.ok) {
+                        result.innerHTML = '<div style="color: #10b981; margin-top: 10px;">✓ ' + (data.message || 'Display-Test erfolgreich') + '</div>';
+                    } else {
+                        result.innerHTML = '<div style="color: #ef4444; margin-top: 10px;">✗ ' + (data.error || 'Display-Test fehlgeschlagen') + '</div>';
+                    }
+                } else {
+                    result.innerHTML = '<div style="color: #ef4444; margin-top: 10px;">✗ Ungültige Server-Antwort</div>';
+                }
+            } catch (error) {
+                console.error('Display test error:', error);
+                result.innerHTML = '<div style="color: #ef4444; margin-top: 10px;">✗ Fehler: ' + error.message + '</div>';
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }
+        }
+        
+        async function testSound() {
+            const btn = document.getElementById('testSoundBtn');
+            const result = document.getElementById('soundTestResult');
+            const originalText = btn.innerHTML;
+            
+            btn.disabled = true;
+            btn.innerHTML = '⏳ Teste...';
+            result.innerHTML = '';
+            
+            try {
+                const response = await fetch('/api/hardware/test/sound', {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+                
+                const contentType = response.headers.get('content-type');
+                if (contentType && contentType.includes('application/json')) {
+                    const data = await response.json();
+                    
+                    if (response.ok) {
+                        result.innerHTML = '<div style="color: #10b981; margin-top: 10px;">✓ ' + (data.message || 'Sound-Test erfolgreich') + '</div>';
+                    } else {
+                        result.innerHTML = '<div style="color: #ef4444; margin-top: 10px;">✗ ' + (data.error || 'Sound-Test fehlgeschlagen') + '</div>';
+                    }
+                } else {
+                    result.innerHTML = '<div style="color: #ef4444; margin-top: 10px;">✗ Ungültige Server-Antwort</div>';
+                }
+            } catch (error) {
+                console.error('Sound test error:', error);
+                result.innerHTML = '<div style="color: #ef4444; margin-top: 10px;">✗ Fehler: ' + error.message + '</div>';
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }
+        }
+        
+        async function testButton() {
+            const btn = document.getElementById('testButtonBtn');
+            const result = document.getElementById('buttonTestResult');
+            const originalText = btn.innerHTML;
+            
+            btn.disabled = true;
+            btn.innerHTML = '⏳ Prüfe...';
+            result.innerHTML = '';
+            
+            try {
+                const response = await fetch('/api/hardware/test/button', {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+                
+                const contentType = response.headers.get('content-type');
+                if (contentType && contentType.includes('application/json')) {
+                    const data = await response.json();
+                    
+                    if (response.ok) {
+                        const statusColor = data.button_pressed ? '#10b981' : '#6b7280';
+                        const statusIcon = data.button_pressed ? '✓' : '○';
+                        result.innerHTML = '<div style="margin-top: 10px;">' +
+                            '<div style="color: ' + statusColor + '; font-weight: bold;">' + 
+                            statusIcon + ' Button-Status: ' + data.button_state + '</div>' +
+                            '<div style="color: #666; font-size: 0.9em; margin-top: 5px;">' + 
+                            (data.message || '') + '</div>' +
+                            '</div>';
+                    } else {
+                        result.innerHTML = '<div style="color: #ef4444; margin-top: 10px;">✗ ' + (data.error || 'Button-Test fehlgeschlagen') + '</div>';
+                    }
+                } else {
+                    result.innerHTML = '<div style="color: #ef4444; margin-top: 10px;">✗ Ungültige Server-Antwort</div>';
+                }
+            } catch (error) {
+                console.error('Button test error:', error);
+                result.innerHTML = '<div style="color: #ef4444; margin-top: 10px;">✗ Fehler: ' + error.message + '</div>';
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
             }
         }
         
