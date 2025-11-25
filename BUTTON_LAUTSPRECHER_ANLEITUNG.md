@@ -23,43 +23,59 @@
 ┌─────────────┐
 │  [Button]   │
 │             │
-│  VCC  GND   │
+│   V    G    │
 │   │    │    │
 │   │    │    │
-│   │    │  OUT│
+│   │    │   S│
 └───┼────┼────┼──┘
     │    │    │
    Rot Schwarz Gelb/Weiss
 ```
+
+**Pin-Beschriftung:**
+- **V** = VCC (Versorgungsspannung, meist rot)
+- **G** = GND (Ground/Masse, meist schwarz)
+- **S** = Signal/OUT (Ausgang, meist gelb/weiss)
 
 ### Verbindung zum Raspberry Pi:
 
 ```
 Button-Modul      →    Raspberry Pi
 ─────────────────────────────────────
-VCC (Rot)         →    Pin 1 (3.3V) ODER Pin 2 (5V)
-GND (Schwarz)     →    Pin 14 (GND)
-OUT (Gelb/Weiss)  →    Pin 12 (GPIO 18)
+V (VCC, Rot)      →    Pin 1 (3.3V) ODER Pin 2 (5V)
+G (GND, Schwarz)  →    Pin 14 (GND)
+S (Signal, Gelb)  →    Pin 12 (GPIO 18)
 ```
+
+**Wichtig:** 
+- **V** = VCC (Versorgung) → Pin 1 oder Pin 2
+- **G** = GND (Masse) → Pin 14
+- **S** = Signal/OUT → Pin 12 (GPIO 18)
 
 ### Schritt-für-Schritt:
 
-1. **VCC (Rot)** → Pin 1 (3.3V) oder Pin 2 (5V)
+1. **V (VCC, Rot)** → Pin 1 (3.3V) oder Pin 2 (5V)
    - Pin 1 ist oben links am Raspberry Pi
    - Pin 2 ist oben rechts (neben Pin 1)
    - Beide funktionieren, 5V ist sicherer
+   - **V** steht für Versorgungsspannung
 
-2. **GND (Schwarz)** → Pin 14 (GND)
+2. **G (GND, Schwarz)** → Pin 14 (GND)
    - Pin 14 ist rechts, 7. Reihe von oben
+   - **G** steht für Ground/Masse
 
-3. **OUT (Gelb/Weiss)** → Pin 12 (GPIO 18)
+3. **S (Signal, Gelb/Weiss)** → Pin 12 (GPIO 18)
    - Pin 12 ist rechts, 6. Reihe von oben
+   - **S** steht für Signal/OUT
 
 ### Funktionsweise:
 
-- **Button losgelassen:** OUT = LOW (0V)
-- **Button gedrückt:** OUT = HIGH (3.3V oder 5V)
+- **Button losgelassen:** S (Signal) = LOW (0V)
+- **Button gedrückt:** S (Signal) = HIGH (3.3V oder 5V)
 - Das Modul hat bereits interne Logik, kein externer Widerstand nötig!
+- **V** muss mit Spannung versorgt werden (3.3V oder 5V)
+- **G** muss an GND (Masse)
+- **S** ist der Ausgang, der an GPIO 18 geht
 
 ### Test:
 

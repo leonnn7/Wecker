@@ -18,14 +18,19 @@ CLK (Grün)       →    Pin 16 (GPIO 23) - rechts, 8. Reihe
 ```
 Button-Modul     →    Raspberry Pi Pin
 ─────────────────────────────────────
-VCC (Rot)        →    Pin 1 (3.3V) oder Pin 2 (5V)
-GND (Schwarz)    →    Pin 14 (GND) - rechts, 7. Reihe
-OUT (Gelb/Weiss) →    Pin 12 (GPIO 18) - rechts, 6. Reihe
+V (VCC, Rot)      →    Pin 1 (3.3V) oder Pin 2 (5V)
+G (GND, Schwarz)  →    Pin 14 (GND) - rechts, 7. Reihe
+S (Signal, Gelb)  →    Pin 12 (GPIO 18) - rechts, 6. Reihe
 ```
+
+**Pin-Beschriftung:**
+- **V** = VCC (Versorgungsspannung)
+- **G** = GND (Ground/Masse)
+- **S** = Signal/OUT (Ausgang)
 
 **Wichtig:** 
 - Das Modul hat bereits interne Logik
-- OUT gibt HIGH aus wenn Button gedrückt
+- S (Signal) gibt HIGH aus wenn Button gedrückt
 - Funktioniert mit 3.3V oder 5V
 
 ### Lautsprecher (Mini 3W 8Ω mit JST-PH2.0 Stecker)

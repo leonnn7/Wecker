@@ -61,18 +61,23 @@ VERBINDUNGEN IM DETAIL (DIREKT AN RASPBERRY PI PINS):
    ┌─────────────────────────────────────────────────┐
    │ Button-Modul      →    Raspberry Pi Pin          │
    ├─────────────────────────────────────────────────┤
-   │ VCC (Rot)         →    Pin 1 (3.3V) oder        │
+   │ V (VCC, Rot)      →    Pin 1 (3.3V) oder        │
    │                      Pin 2 (5V)                 │
-   │ GND (Schwarz)     →    Pin 14 (GND)             │
-   │ OUT (Gelb/Weiss)   →    Pin 12 (GPIO 18)         │
+   │ G (GND, Schwarz)  →    Pin 14 (GND)             │
+   │ S (Signal, Gelb)  →    Pin 12 (GPIO 18)         │
    └─────────────────────────────────────────────────┘
+   
+   PIN-BESCHRIFTUNG:
+   - V = VCC (Versorgungsspannung)
+   - G = GND (Ground/Masse)
+   - S = Signal/OUT (Ausgang)
    
    WICHTIG: 
    - Dieses Modul hat bereits interne Logik und Pull-up!
    - Pin 1 = 3.3V (links oben) ODER Pin 2 = 5V (rechts oben)
    - Pin 14 = GND (rechts, siebte Reihe)
    - Pin 12 = GPIO 18 (rechts, sechste Reihe)
-   - OUT gibt HIGH (3.3V/5V) aus wenn Button gedrückt
+   - S (Signal) gibt HIGH (3.3V/5V) aus wenn Button gedrückt
    - Das Modul funktioniert mit 3.3V oder 5V
 
 3. LAUTSPRECHER (Mini Lautsprecher 3W 8Ω mit JST-PH2.0)
@@ -117,9 +122,9 @@ SCHALTSCHEMA (Text-Darstellung):
         
         [Button-Modul]
               │
-        VCC ───┘ → Pin 1 (3.3V) oder Pin 2 (5V)
-        GND ───┘ → Pin 14 (GND)
-        OUT ───┘ → Pin 12 (GPIO 18)
+        V (VCC) ───┘ → Pin 1 (3.3V) oder Pin 2 (5V)
+        G (GND) ───┘ → Pin 14 (GND)
+        S (Signal) ───┘ → Pin 12 (GPIO 18)
         
         [Lautsprecher]
               │

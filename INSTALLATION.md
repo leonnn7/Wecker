@@ -220,15 +220,20 @@ CLK (Grün)     →      Pin 16 (GPIO 23)
 ```
 Button-Modul          Raspberry Pi
 ─────────────────────────────────
-VCC (Rot)             →      Pin 1 (3.3V) oder Pin 2 (5V)
-GND (Schwarz)         →      Pin 14 (GND)
-OUT (Gelb/Weiss)      →      Pin 12 (GPIO 18)
+V (VCC, Rot)          →      Pin 1 (3.3V) oder Pin 2 (5V)
+G (GND, Schwarz)      →      Pin 14 (GND)
+S (Signal, Gelb)      →      Pin 12 (GPIO 18)
 ```
+
+**Pin-Beschriftung am Modul:**
+- **V** = VCC (Versorgungsspannung)
+- **G** = GND (Ground/Masse)
+- **S** = Signal/OUT (Ausgang)
 
 **Wichtig:**
 - Das Modul hat bereits interne Logik und Pull-up Widerstand
-- OUT gibt HIGH (3.3V/5V) aus wenn Button gedrückt
-- OUT gibt LOW (0V) aus wenn Button losgelassen
+- S (Signal) gibt HIGH (3.3V/5V) aus wenn Button gedrückt
+- S (Signal) gibt LOW (0V) aus wenn Button losgelassen
 - Das Modul funktioniert mit 3.3V oder 5V
 - Kein externer Widerstand nötig!
 
@@ -271,9 +276,9 @@ Lautsprecher          Raspberry Pi
 | TM1637 GND | GND | - | Pin 6 | Schwarz |
 | TM1637 DIO | GPIO 24 | 24 | Pin 18 | Gelb |
 | TM1637 CLK | GPIO 23 | 23 | Pin 16 | Grün |
-| Button VCC | 3.3V/5V | - | Pin 1 oder 2 | Rot |
-| Button GND | GND | - | Pin 14 | Schwarz |
-| Button OUT | GPIO 18 | 18 | Pin 12 | Gelb/Weiss |
+| Button V (VCC) | 3.3V/5V | - | Pin 1 oder 2 | Rot |
+| Button G (GND) | GND | - | Pin 14 | Schwarz |
+| Button S (Signal) | GPIO 18 | 18 | Pin 12 | Gelb/Weiss |
 | Sound (PWM) | GPIO 25 | 25 | Pin 22 | Rot |
 | Sound GND | GND | - | Pin 20 | Schwarz |
 
@@ -287,9 +292,9 @@ Lautsprecher          Raspberry Pi
     DIO ───┘ (Pin 18)        │
     CLK ───┘ (Pin 16)        │
                              │
-                    VCC ──────┘ (Pin 1 oder 2)
-                    GND ──────┘ (Pin 14)
-                    OUT ──────┘ (Pin 12 - GPIO 18)
+                    V (VCC) ──────┘ (Pin 1 oder 2)
+                    G (GND) ──────┘ (Pin 14)
+                    S (Signal) ──────┘ (Pin 12 - GPIO 18)
 
     [Lautsprecher]
          │
