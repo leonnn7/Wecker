@@ -8,17 +8,23 @@ from database import get_db
 
 class DBAlarm:
     def __init__(self, row):
+        # sqlite3.Row hat kein .get(), verwende Dictionary-Syntax
         self.id = row['id']
-        self.user_id = row.get('user_id')
+        self.user_id = row['user_id'] if 'user_id' in row.keys() else None
         self.time_str = row['time']
-        self.days = json.loads(row['days']) if row.get('days') else []
+        # days kann None sein oder ein JSON-String
+        days_value = row['days'] if 'days' in row.keys() else None
+        self.days = json.loads(days_value) if days_value else []
         self.enabled = bool(row['enabled'])
-        self.label = row.get('label') or ''
-        self.sound_file = row.get('sound_file')
-        self.snooze_allowed = bool(row.get('snooze_allowed', 1))
-        self.snooze_duration = row.get('snooze_duration', 5)
-        self.snooze_until = datetime.fromisoformat(row['snooze_until']) if row.get('snooze_until') else None
-        self.last_triggered = datetime.fromisoformat(row['last_triggered']) if row.get('last_triggered') else None
+        self.label = row['label'] if 'label' in row.keys() and row['label'] else ''
+        self.sound_file = row['sound_file'] if 'sound_file' in row.keys() and row['sound_file'] else None
+        self.snooze_allowed = bool(row['snooze_allowed'] if 'snooze_allowed' in row.keys() else 1)
+        self.snooze_duration = row['snooze_duration'] if 'snooze_duration' in row.keys() else 5
+        # snooze_until und last_triggered können None sein
+        snooze_until_val = row['snooze_until'] if 'snooze_until' in row.keys() and row['snooze_until'] else None
+        self.snooze_until = datetime.fromisoformat(snooze_until_val) if snooze_until_val else None
+        last_triggered_val = row['last_triggered'] if 'last_triggered' in row.keys() and row['last_triggered'] else None
+        self.last_triggered = datetime.fromisoformat(last_triggered_val) if last_triggered_val else None
     
     def to_dict(self):
         """Convert alarm to dictionary"""
